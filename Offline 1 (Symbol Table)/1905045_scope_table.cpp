@@ -150,4 +150,19 @@ public:
         }
     }
 
+    void setID(int id) {
+        this->id = id;
+    }
+
+    int getID() const {
+        return id;
+    }
+
+    void setParentScope(ScopeTable *parent) {
+        parent_scope = parent;
+    }
+
+    ScopeTable *getParentScope() const {
+        return parent_scope;
+    }
 };
