@@ -58,10 +58,10 @@ class ScopeTable {
     }
 
     void print_bucket(int idx) {
-        cout << idx+1 << "-->";
+        cout << "\t" << idx+1 << "--> ";
         SymbolInfo *curr = arr[idx];
         while (curr != nullptr) {
-            cout << " <" << curr->getName() << ',' << curr->getType() << '>';
+            cout << "<" << curr->getName() << ',' << curr->getType() << "> ";
             curr = curr->getNextSymbol();
         }
         cout << '\n';
@@ -81,6 +81,10 @@ public:
         num_buckets = n;
         this->id = id;
         arr = new SymbolInfo*[n];
+        for (int i = 0; i < num_buckets; i++) {
+            arr[i] = nullptr;
+        }
+        cout << "\tScopeTable# " << id << " created\n";
     }
 
     ~ScopeTable() {
@@ -88,6 +92,7 @@ public:
             delete_bucket(i);
         }
         delete[] arr;
+        cout << "\tScopeTable# " << id << " removed\n";
     }
 
     // returns false if not found
@@ -144,7 +149,7 @@ public:
     }
 
     void print() {
-        cout << "ScopeTable# " << id << '\n';
+        cout << "\tScopeTable# " << id << '\n';
         for (int i = 0; i < num_buckets; i++) {
             print_bucket(i);
         }

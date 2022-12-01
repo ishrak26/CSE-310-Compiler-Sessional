@@ -28,23 +28,22 @@ public:
         }
     }
 
-    int enter_scope() {
+    void enter_scope() {
         table_no++;
         ScopeTable *new_scope = new ScopeTable(num_buckets, table_no);
         new_scope->setParentScope(curr_scope);
         curr_scope = new_scope;
-        return curr_scope->getID();
     }
 
-    bool exit_scope(int &id) {
+    bool exit_scope() {
         if (curr_scope->getParentScope() == nullptr) {
             // cannot exit the first scope
             return false;
         }
-        id = curr_scope->getID();
         ScopeTable *tmp = curr_scope->getParentScope();
         delete curr_scope;
         curr_scope = tmp;
+        return true;
     }
 
     bool insert(const string &name, const string &type, int &idx, int &pos, int &table_id) {
