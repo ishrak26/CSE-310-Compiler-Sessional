@@ -5,7 +5,7 @@
 
 using namespace std;
 
-// replace every whitespace type with ' '
+// replace every whitespace type with ' ' and count no. of words in the string
 int format_and_count_words(string &str) {
     int cnt = 0;
     for (int i = 1; i < str.length(); i++) {
@@ -67,8 +67,8 @@ void look_up(string &str, SymbolTable &symTable) {
     assert(find_next_word(str, pos, i, j));
     string name = str.substr(i, j-i);
     int idx, table_id;
-    bool ret = symTable.look_up(name, idx, pos, table_id);
-    if (ret) {
+    SymbolInfo *ret = symTable.look_up(name, idx, pos, table_id);
+    if (ret != nullptr) {
         cout << "\t\'" << name << "\' found in ScopeTable# " << table_id << " at position " << idx+1 << ", " << pos+1 << '\n';
     }
     else {
@@ -96,7 +96,7 @@ void print_table(string &str, SymbolTable &symTable) {
 void delete_symbol(string &str, SymbolTable &symTable) {
     int words = format_and_count_words(str);
     if (words != 2) {
-        cout << "\tNumber of parameters mismatch for the  command D\n";
+        cout << "\tNumber of parameters mismatch for the command D\n";
         return;
     }
     int i, j, pos = 1;
@@ -134,8 +134,8 @@ void exit_table(string &str, SymbolTable &symTable) {
 }
 
 int main() {
-    freopen("sample_input.txt", "r", stdin);
-    freopen("my_output.txt", "w", stdout);
+//    freopen("sample_input.txt", "r", stdin);
+//    freopen("my_output.txt", "w", stdout);
 
     int num_buckets;
     cin >> num_buckets;

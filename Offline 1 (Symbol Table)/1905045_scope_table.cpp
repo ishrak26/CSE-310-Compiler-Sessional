@@ -12,7 +12,7 @@ class ScopeTable {
     ScopeTable *parent_scope;
 
     unsigned int SDBMHash(const string &str) const {
-        unsigned int hash = 0;
+        unsigned long long hash = 0;
         unsigned int i = 0;
         unsigned int len = str.length();
 
@@ -22,7 +22,7 @@ class ScopeTable {
             hash %= num_buckets;
         }
 
-        return hash;
+        return (unsigned int)hash;
     }
 
     SymbolInfo *find_in_chain(const string &str, int idx, int task, int &pos) const {
