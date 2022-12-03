@@ -134,8 +134,8 @@ void exit_table(string &str, SymbolTable &symTable) {
 }
 
 int main() {
-//    freopen("sample_input.txt", "r", stdin);
-//    freopen("my_output.txt", "w", stdout);
+    freopen("sample_input.txt", "r", stdin);
+    freopen("my_output.txt", "w", stdout);
 
     int num_buckets;
     cin >> num_buckets;
