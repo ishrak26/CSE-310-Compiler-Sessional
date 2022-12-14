@@ -70,17 +70,17 @@ public:
         return nullptr;
     }
 
-    void print_current_scope_table() {
-        curr_scope->print();
-    }
+    // void print_current_scope_table() {
+    //     curr_scope->print();
+    // }
 
-    void print_all_scope_table() {
+    void print_all_scope_table(FILE *logout) {
         ScopeTable *curr = curr_scope;
         while (curr != nullptr) {
-            curr->print();
+            curr->print(logout);
             curr = curr->getParentScope();
         }
     }
 };
 
-int SymbolTable::table_no;
+int SymbolTable::table_no = 0;

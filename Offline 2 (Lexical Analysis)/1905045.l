@@ -173,6 +173,107 @@ NEWLINE \n
                 fprintf(tokenout,"<CONST_CHAR, %s>\n",c);
 				fprintf(logout,"Line #%d: Token <CONST_CHAR> Lexeme %s found\n",line_count,c);
         }
+
+ /* operators and punctuators */
+\+|\-	{
+			fprintf(tokenout,"<ADDOP, %s>\n", yytext);
+			fprintf(logout,"Line #%d: Token <ADDOP> Lexeme %s found\n",line_count,yytext);
+		}
+
+\*|\/|%	{
+			fprintf(tokenout,"<MULOP, %s>\n", yytext);
+			fprintf(logout,"Line #%d: Token <MULOP> Lexeme %s found\n",line_count,yytext);
+		}
+
+\+\+|\-\-	{
+			fprintf(tokenout,"<INCOP, %s>\n", yytext);
+			fprintf(logout,"Line #%d: Token <INCOP> Lexeme %s found\n",line_count,yytext);
+		}
+
+\<=?|>=?|==|!=	{
+			fprintf(tokenout,"<RELOP, %s>\n", yytext);
+			fprintf(logout,"Line #%d: Token <RELOP> Lexeme %s found\n",line_count,yytext);
+		}
+
+=	{
+			fprintf(tokenout,"<ASSIGNOP, %s>\n", yytext);
+			fprintf(logout,"Line #%d: Token <ASSIGNOP> Lexeme %s found\n",line_count,yytext);
+		}
+
+&&|\|\|	{
+			fprintf(tokenout,"<LOGICOP, %s>\n", yytext);
+			fprintf(logout,"Line #%d: Token <LOGICOP> Lexeme %s found\n",line_count,yytext);
+		}
+
+&|\||\^|<<|>>	{
+			fprintf(tokenout,"<BITOP, %s>\n", yytext);
+			fprintf(logout,"Line #%d: Token <BITOP> Lexeme %s found\n",line_count,yytext);
+		}
+
+!	{
+			fprintf(tokenout,"<NOT, %s>\n", yytext);
+			fprintf(logout,"Line #%d: Token <NOT> Lexeme %s found\n",line_count,yytext);
+		}
+
+\(	{
+			fprintf(tokenout,"<LPAREN, %s>\n", yytext);
+			fprintf(logout,"Line #%d: Token <LPAREN> Lexeme %s found\n",line_count,yytext);
+		}
+
+\)	{
+			fprintf(tokenout,"<RPAREN, %s>\n", yytext);
+			fprintf(logout,"Line #%d: Token <RPAREN> Lexeme %s found\n",line_count,yytext);
+		}
+
+\{	{
+			st.enter_scope();
+            fprintf(tokenout,"<LCURL, %s>\n", yytext);
+			fprintf(logout,"Line #%d: Token <LCURL> Lexeme %s found\n",line_count,yytext);
+		}
+
+\}	{
+			st.exit_scope();
+            fprintf(tokenout,"<RCURL, %s>\n", yytext);
+			fprintf(logout,"Line #%d: Token <RCURL> Lexeme %s found\n",line_count,yytext);
+		}
+
+\[	{
+			fprintf(tokenout,"<LSQUARE, %s>\n", yytext);
+			fprintf(logout,"Line #%d: Token <LSQUARE> Lexeme %s found\n",line_count,yytext);
+		}
+
+\]	{
+			fprintf(tokenout,"<RSQUARE, %s>\n", yytext);
+			fprintf(logout,"Line #%d: Token <RSQUARE> Lexeme %s found\n",line_count,yytext);
+		}
+
+\,	{
+			fprintf(tokenout,"<COMMA, %s>\n", yytext);
+			fprintf(logout,"Line #%d: Token <COMMA> Lexeme %s found\n",line_count,yytext);
+		}
+
+\;	{
+			fprintf(tokenout,"<SEMICOLON, %s>\n", yytext);
+			fprintf(logout,"Line #%d: Token <SEMICOLON> Lexeme %s found\n",line_count,yytext);
+		} 
+
+ /* identifiers */
+[_A-Za-z][_0-9A-Za-z]* {
+            fprintf(tokenout,"<ID, %s>\n", yytext);
+			fprintf(logout,"Line #%d: Token <ID> Lexeme %s found\n",line_count,yytext);
+            int table_no, idx, pos;
+            
+            bool ret = st.insert(string(yytext), "ID", idx, pos, table_no);
+            
+            if (!ret) {
+                // found 
+                fprintf(logout, "\t%s already exists in the current ScopeTable\n", yytext);
+            }
+            else {
+                st.print_all_scope_table(logout);
+            }
+        }
+
 %%
 
 int main(int argc, char** argv) {
@@ -193,6 +294,7 @@ int main(int argc, char** argv) {
 	tokenout= fopen("token.txt","w");
 
 	yyin= fin;
+    
 	cout << "hello here\n";
     yylex();
     cout << "hello there\n";

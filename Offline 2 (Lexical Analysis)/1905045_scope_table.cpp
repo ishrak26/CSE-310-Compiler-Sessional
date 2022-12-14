@@ -57,16 +57,19 @@ class ScopeTable {
         // previous entry during delete
     }
 
-    void print_bucket(int idx) {
+    void print_bucket(int idx, FILE *logout) {
         
         SymbolInfo *curr = arr[idx];
         if (curr == nullptr) return;
-        cout << "\t" << idx+1 << "--> ";
+        fprintf(logout, "\t%d--> ", idx+1);
+        // cout << "\t" << idx+1 << "--> ";
         while (curr != nullptr) {
-            cout << "<" << curr->getName() << ',' << curr->getType() << "> ";
+            fprintf(logout, "<%s,%s> ", curr->getName().c_str(), curr->getType().c_str());
+            // cout << "<" << curr->getName() << ',' << curr->getType() << "> ";
             curr = curr->getNextSymbol();
         }
-        cout << '\n';
+        fprintf(logout, "\n");
+        // cout << '\n';
     }
 
     void delete_bucket(int idx) {
@@ -97,7 +100,7 @@ public:
         // cout << "\tScopeTable# " << id << " removed\n";
     }
 
-    // returns false if not found
+    // returns false if found
     bool insert(const string &symbol, const string &type, int &idx, int &pos) {
         idx = SDBMHash(symbol);
         SymbolInfo *ret = find_in_chain(symbol, idx, 1, pos);
@@ -150,10 +153,12 @@ public:
         }
     }
 
-    void print() {
-        cout << "\tScopeTable# " << id << '\n';
+    void print(FILE *logout) {
+        cout << logout << '\n';
+        fprintf(logout, "\tScopeTable# %d\n", id);
+        // cout << "\tScopeTable# " << id << '\n';
         for (int i = 0; i < num_buckets; i++) {
-            print_bucket(i);
+            print_bucket(i, logout);
         }
     }
 
@@ -172,4 +177,5 @@ public:
     ScopeTable *getParentScope() const {
         return parent_scope;
     }
+
 };
