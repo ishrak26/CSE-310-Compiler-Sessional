@@ -23,6 +23,7 @@ SymbolTable st(NUM_BUCKETS);
 WHITESPACE [ \t\f\r\v]+ 
 LETTER [a-zA-Z]
 DIGIT [0-9]
+CHAR [^'"\\]|\\['"\\abfnrtv0]
 NEWLINE \n
 
 %%
@@ -30,6 +31,16 @@ NEWLINE \n
 {NEWLINE} {line_count++;}
 
 {WHITESPACE} {}
+
+ /* single-line comment */
+\/\/[^\n]* {
+			fprintf(logout,"Line #%d: Token <SINGLE LINE COMMENT> Lexeme %s found\n",line_count,yytext);
+        }
+
+ /* multi-line comment */
+\/\/([^\n]*\\{NEWLINE})+[^\n]*|\/\*[ -~\n\r\t\b\v\\]*\*\/ {
+			fprintf(logout,"Line #%d: Token <MULTI LINE COMMENT> Lexeme %s found\n",line_count,yytext);
+        }
 
  /* keywords */
 "if"	{
@@ -126,7 +137,7 @@ NEWLINE \n
         }
 
  /* character literal */
-\'([^'"\\]|\\['"\\abfnrtv0])\' 	{
+\'{CHAR}\' 	{
 				string str = string(yytext);
                 str = str.substr(1, str.length()-2);
                 char c[str.length()+1];
@@ -272,6 +283,18 @@ NEWLINE \n
             else {
                 st.print_all_scope_table(logout);
             }
+        }
+
+ /* single-line string literal */
+\"{CHAR}+\" {
+            fprintf(tokenout,"<SINGLE LINE STRING, %s>\n", yytext);
+			fprintf(logout,"Line #%d: Token <SINGLE LINE STRING> Lexeme %s found\n",line_count,yytext);
+        }
+
+ /* multi-line string literal */
+\"({CHAR}*\\{NEWLINE})+{CHAR}*\" {
+            fprintf(tokenout,"<MULTI LINE STRING, %s>\n", yytext);
+			fprintf(logout,"Line #%d: Token <MULTI LINE STRING> Lexeme %s found\n",line_count,yytext);
         }
 
 %%

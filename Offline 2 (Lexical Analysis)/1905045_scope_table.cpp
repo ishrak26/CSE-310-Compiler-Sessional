@@ -154,7 +154,6 @@ public:
     }
 
     void print(FILE *logout) {
-        cout << logout << '\n';
         fprintf(logout, "\tScopeTable# %d\n", id);
         // cout << "\tScopeTable# " << id << '\n';
         for (int i = 0; i < num_buckets; i++) {
