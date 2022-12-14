@@ -1,0 +1,204 @@
+%option noyywrap
+
+%{
+#include<cstdio>
+#include<cstdlib>
+#include<string>
+#include<vector>
+
+#include "1905045_symbol_table.cpp"
+
+using namespace std;
+
+const int NUM_BUCKETS = 10;
+int line_count=1;
+
+FILE *logout;
+FILE *tokenout;
+
+SymbolTable st(NUM_BUCKETS);
+
+%}
+
+WHITESPACE [ \t\f\r\v]+ 
+LETTER [a-zA-Z]
+DIGIT [0-9]
+NEWLINE \n
+
+%%
+
+{NEWLINE} {line_count++;}
+
+{WHITESPACE} {}
+
+ /* keywords */
+"if"	{
+			fprintf(tokenout,"<IF, %s>\n", yytext);
+			fprintf(logout,"Line #%d: Token <IF> Lexeme %s found\n",line_count,yytext);
+		}
+		
+"else"	{
+			fprintf(tokenout,"<ELSE, %s>\n", yytext);
+			fprintf(logout,"Line #%d: Token <ELSE> Lexeme %s found\n",line_count,yytext);
+		}
+
+"for"	{
+			fprintf(tokenout,"<FOR, %s>\n", yytext);
+			fprintf(logout,"Line #%d: Token <FOR> Lexeme %s found\n",line_count,yytext);
+		}
+		
+"while"	{
+			fprintf(tokenout,"<WHILE, %s>\n", yytext);
+			fprintf(logout,"Line #%d: Token <WHILE> Lexeme %s found\n",line_count,yytext);
+		}
+		
+"do"	{
+			fprintf(tokenout,"<DO, %s>\n", yytext);
+			fprintf(logout,"Line #%d: Token <DO> Lexeme %s found\n",line_count,yytext);
+		}
+		
+"break"	{
+			fprintf(tokenout,"<BREAK, %s>\n", yytext);
+			fprintf(logout,"Line #%d: Token <BREAK> Lexeme %s found\n",line_count,yytext);
+		}
+		
+"int"	{
+			fprintf(tokenout,"<INT, %s>\n", yytext);
+			fprintf(logout,"Line #%d: Token <INT> Lexeme %s found\n",line_count,yytext);
+		}
+		
+"char"	{
+			fprintf(tokenout,"<CHAR, %s>\n", yytext);
+			fprintf(logout,"Line #%d: Token <CHAR> Lexeme %s found\n",line_count,yytext);
+		}
+		
+"float"	{
+			fprintf(tokenout,"<FLOAT, %s>\n", yytext);
+			fprintf(logout,"Line #%d: Token <FLOAT> Lexeme %s found\n",line_count,yytext);
+		}
+		
+"double"	{
+			fprintf(tokenout,"<DOUBLE, %s>\n", yytext);
+			fprintf(logout,"Line #%d: Token <DOUBLE> Lexeme %s found\n",line_count,yytext);
+		}
+		
+"void"	{
+			fprintf(tokenout,"<VOID, %s>\n", yytext);
+			fprintf(logout,"Line #%d: Token <VOID> Lexeme %s found\n",line_count,yytext);
+		}
+		
+"return"	{
+			fprintf(tokenout,"<RETURN, %s>\n", yytext);
+			fprintf(logout,"Line #%d: Token <RETURN> Lexeme %s found\n",line_count,yytext);
+		}
+		
+"switch"	{
+			fprintf(tokenout,"<SWITCH, %s>\n", yytext);
+			fprintf(logout,"Line #%d: Token <SWITCH> Lexeme %s found\n",line_count,yytext);
+		}
+		
+"case"	{
+			fprintf(tokenout,"<CASE, %s>\n", yytext);
+			fprintf(logout,"Line #%d: Token <CASE> Lexeme %s found\n",line_count,yytext);
+		}
+		
+"default"	{
+			fprintf(tokenout,"<DEFAULT, %s>\n", yytext);
+			fprintf(logout,"Line #%d: Token <DEFAULT> Lexeme %s found\n",line_count,yytext);
+		}
+		
+"continue"	{
+			fprintf(tokenout,"<CONTINUE, %s>\n", yytext);
+			fprintf(logout,"Line #%d: Token <CONTINUE> Lexeme %s found\n",line_count,yytext);
+		}
+
+ /* integer literal */
+{DIGIT}+ 	{
+				fprintf(tokenout,"<CONST_INT, %s>\n",yytext);
+				fprintf(logout,"Line #%d: Token <CONST_INT> Lexeme %s found\n",line_count,yytext);
+        }
+
+ /* floating point literal that must include sth after the decimal point */
+ /* floating point literal that has no decimal point */
+({DIGIT}*\.{DIGIT}+("E"("-")?{DIGIT}+)?)|({DIGIT}+"E"("-")?{DIGIT}+) {
+                fprintf(tokenout,"<CONST_FLOAT, %s>\n",yytext);
+				fprintf(logout,"Line #%d: Token <CONST_FLOAT> Lexeme %s found\n",line_count,yytext);
+        }
+
+ /* character literal */
+\'([^'"\\]|\\['"\\abfnrtv0])\' 	{
+				string str = string(yytext);
+                str = str.substr(1, str.length()-2);
+                char c[str.length()+1];
+                strcpy(c, str.c_str());
+                c[str.length()] = 0;
+
+                if (c[0] == '\\') {
+                    switch(c[1]) {
+                        case 'a':
+                            c[0] = '\a';
+                            break;
+                        case 'b':
+                            c[0] = '\b';
+                            break;
+                        case 'f':
+                            c[0] = '\f';
+                            break;
+                        case 'n':
+                            c[0] = '\n';
+                            break;
+                        case 'r':
+                            c[0] = '\r';
+                            break;
+                        case 't':
+                            c[0] = '\t';
+                            break;
+                        case 'v':
+                            c[0] = '\v';
+                            break;
+                        case '0':
+                            c[0] = '\0';
+                            break;
+                        case '\'':
+                        case '\"':
+                        case '\\':
+                            c[0] = c[1];
+                            break;
+                        default:
+                            ;
+                    }
+                    c[1] = 0;
+                }
+
+                fprintf(tokenout,"<CONST_CHAR, %s>\n",c);
+				fprintf(logout,"Line #%d: Token <CONST_CHAR> Lexeme %s found\n",line_count,c);
+        }
+%%
+
+int main(int argc, char** argv) {
+	freopen("my_output.txt", "w", stdout);
+    
+    if(argc!=2){
+		printf("Please provide input file name and try again\n");
+		return 0;
+	}
+	
+	FILE *fin=fopen(argv[1],"r");
+	if(fin==NULL){
+		printf("Cannot open specified file\n");
+		return 0;
+	}
+	
+	logout= fopen("log.txt","w");
+	tokenout= fopen("token.txt","w");
+
+	yyin= fin;
+	cout << "hello here\n";
+    yylex();
+    cout << "hello there\n";
+	
+	fclose(yyin);
+	fclose(tokenout);
+	fclose(logout);
+	return 0;
+}
