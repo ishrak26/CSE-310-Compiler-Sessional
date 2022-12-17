@@ -1,6 +1,7 @@
 %option noyywrap
 
 %x MULTI_LINE_COMMENT
+%x MULTI_LINE_STRING
 %x IFILE
 
 %{
@@ -82,9 +83,18 @@ void handle_escape_string(string &str) {
 void handle_multiline_backslash(string &str) {
 	for (int i = str.length()-1; i > 0; i--) {
 		if (str[i] == '\n' && str[i-1] == '\\') {
-			str[i] = ' ';
+			// str[i] = ' ';
+			shift_string_to_left(str, i);
 			shift_string_to_left(str, i-1);
 			i--;
+			line_count++;
+		}
+	}
+}
+
+void handle_newlines(string &str) {
+	for (int i = 0; i < str.length(); i++) {
+		if (str[i] == '\n') {
 			line_count++;
 		}
 	}
@@ -105,13 +115,17 @@ NEWLINE \n
 {WHITESPACE} {}
 
  /* single-line comment */
-\/\/[^\n]* {
-			fprintf(logout,"Line #%d: Token <SINGLE LINE COMMENT> Lexeme %s found\n",line_count,yytext);
+\/\/[^\n]*|\/\/([^\n]*\\{NEWLINE})+[^\n]* {
+			fprintf(logout,"Line# %d: Token <SINGLE LINE COMMENT> Lexeme %s found\n",line_count,yytext);
+			string str = string(yytext);
+			handle_newlines(str);
         }
 
  /* multi-line comment */
-\/\/([^\n]*\\{NEWLINE})+[^\n]*|\/\*[ -~\n\r\t\b\v\\]*\*\/ {
-			fprintf(logout,"Line #%d: Token <MULTI LINE COMMENT> Lexeme %s found\n",line_count,yytext);
+\/\*[ -~\n\r\t\b\v\\]*\*\/ {
+			fprintf(logout,"Line# %d: Token <MULTI LINE COMMENT> Lexeme %s found\n",line_count,yytext);
+			string str = string(yytext);
+			handle_newlines(str);
         }
 
 \/\* {
@@ -122,106 +136,112 @@ NEWLINE \n
 <MULTI_LINE_COMMENT><<EOF>> {
 			fprintf(logout,"Error at line# %d: UNFINISHED COMMENT %s\n",line_count,yytext);
 			error_count++;
+			string str = string(yytext);
+			handle_newlines(str);
 			// yyterminate();
 			BEGIN(INITIAL);
 		}
 
 <MULTI_LINE_COMMENT>[ -~\n\r\t\b\v\\] {
 			// cerr << "multi line comment ongoing\n";
+			string str = string(yytext);
+			if (str[0] == '\n') {
+				line_count++;
+			}
 		}
 
  /* keywords */
 "if"	{
 			fprintf(tokenout,"<IF, %s>\n", yytext);
-			fprintf(logout,"Line #%d: Token <IF> Lexeme %s found\n",line_count,yytext);
+			fprintf(logout,"Line# %d: Token <IF> Lexeme %s found\n",line_count,yytext);
 		}
 		
 "else"	{
 			fprintf(tokenout,"<ELSE, %s>\n", yytext);
-			fprintf(logout,"Line #%d: Token <ELSE> Lexeme %s found\n",line_count,yytext);
+			fprintf(logout,"Line# %d: Token <ELSE> Lexeme %s found\n",line_count,yytext);
 		}
 
 "for"	{
 			fprintf(tokenout,"<FOR, %s>\n", yytext);
-			fprintf(logout,"Line #%d: Token <FOR> Lexeme %s found\n",line_count,yytext);
+			fprintf(logout,"Line# %d: Token <FOR> Lexeme %s found\n",line_count,yytext);
 		}
 		
 "while"	{
 			fprintf(tokenout,"<WHILE, %s>\n", yytext);
-			fprintf(logout,"Line #%d: Token <WHILE> Lexeme %s found\n",line_count,yytext);
+			fprintf(logout,"Line# %d: Token <WHILE> Lexeme %s found\n",line_count,yytext);
 		}
 		
 "do"	{
 			fprintf(tokenout,"<DO, %s>\n", yytext);
-			fprintf(logout,"Line #%d: Token <DO> Lexeme %s found\n",line_count,yytext);
+			fprintf(logout,"Line# %d: Token <DO> Lexeme %s found\n",line_count,yytext);
 		}
 		
 "break"	{
 			fprintf(tokenout,"<BREAK, %s>\n", yytext);
-			fprintf(logout,"Line #%d: Token <BREAK> Lexeme %s found\n",line_count,yytext);
+			fprintf(logout,"Line# %d: Token <BREAK> Lexeme %s found\n",line_count,yytext);
 		}
 		
 "int"	{
 			fprintf(tokenout,"<INT, %s>\n", yytext);
-			fprintf(logout,"Line #%d: Token <INT> Lexeme %s found\n",line_count,yytext);
+			fprintf(logout,"Line# %d: Token <INT> Lexeme %s found\n",line_count,yytext);
 		}
 		
 "char"	{
 			fprintf(tokenout,"<CHAR, %s>\n", yytext);
-			fprintf(logout,"Line #%d: Token <CHAR> Lexeme %s found\n",line_count,yytext);
+			fprintf(logout,"Line# %d: Token <CHAR> Lexeme %s found\n",line_count,yytext);
 		}
 		
 "float"	{
 			fprintf(tokenout,"<FLOAT, %s>\n", yytext);
-			fprintf(logout,"Line #%d: Token <FLOAT> Lexeme %s found\n",line_count,yytext);
+			fprintf(logout,"Line# %d: Token <FLOAT> Lexeme %s found\n",line_count,yytext);
 		}
 		
 "double"	{
 			fprintf(tokenout,"<DOUBLE, %s>\n", yytext);
-			fprintf(logout,"Line #%d: Token <DOUBLE> Lexeme %s found\n",line_count,yytext);
+			fprintf(logout,"Line# %d: Token <DOUBLE> Lexeme %s found\n",line_count,yytext);
 		}
 		
 "void"	{
 			fprintf(tokenout,"<VOID, %s>\n", yytext);
-			fprintf(logout,"Line #%d: Token <VOID> Lexeme %s found\n",line_count,yytext);
+			fprintf(logout,"Line# %d: Token <VOID> Lexeme %s found\n",line_count,yytext);
 		}
 		
 "return"	{
 			fprintf(tokenout,"<RETURN, %s>\n", yytext);
-			fprintf(logout,"Line #%d: Token <RETURN> Lexeme %s found\n",line_count,yytext);
+			fprintf(logout,"Line# %d: Token <RETURN> Lexeme %s found\n",line_count,yytext);
 		}
 		
 "switch"	{
 			fprintf(tokenout,"<SWITCH, %s>\n", yytext);
-			fprintf(logout,"Line #%d: Token <SWITCH> Lexeme %s found\n",line_count,yytext);
+			fprintf(logout,"Line# %d: Token <SWITCH> Lexeme %s found\n",line_count,yytext);
 		}
 		
 "case"	{
 			fprintf(tokenout,"<CASE, %s>\n", yytext);
-			fprintf(logout,"Line #%d: Token <CASE> Lexeme %s found\n",line_count,yytext);
+			fprintf(logout,"Line# %d: Token <CASE> Lexeme %s found\n",line_count,yytext);
 		}
 		
 "default"	{
 			fprintf(tokenout,"<DEFAULT, %s>\n", yytext);
-			fprintf(logout,"Line #%d: Token <DEFAULT> Lexeme %s found\n",line_count,yytext);
+			fprintf(logout,"Line# %d: Token <DEFAULT> Lexeme %s found\n",line_count,yytext);
 		}
 		
 "continue"	{
 			fprintf(tokenout,"<CONTINUE, %s>\n", yytext);
-			fprintf(logout,"Line #%d: Token <CONTINUE> Lexeme %s found\n",line_count,yytext);
+			fprintf(logout,"Line# %d: Token <CONTINUE> Lexeme %s found\n",line_count,yytext);
 		}
 
  /* integer literal */
 {DIGIT}+ 	{
 				fprintf(tokenout,"<CONST_INT, %s>\n",yytext);
-				fprintf(logout,"Line #%d: Token <CONST_INT> Lexeme %s found\n",line_count,yytext);
+				fprintf(logout,"Line# %d: Token <CONST_INT> Lexeme %s found\n",line_count,yytext);
         }
 
  /* floating point literal that must include sth after the decimal point */
  /* floating point literal that has no decimal point */
 ({DIGIT}*\.{DIGIT}+("E"("-")?{DIGIT}+)?)|({DIGIT}+"E"("-")?{DIGIT}+) {
                 fprintf(tokenout,"<CONST_FLOAT, %s>\n",yytext);
-				fprintf(logout,"Line #%d: Token <CONST_FLOAT> Lexeme %s found\n",line_count,yytext);
+				fprintf(logout,"Line# %d: Token <CONST_FLOAT> Lexeme %s found\n",line_count,yytext);
         }
 
  /* empty const char */
@@ -276,7 +296,7 @@ NEWLINE \n
 				}
 
 				fprintf(tokenout,"<CONST_CHAR, %s>\n",c);
-				fprintf(logout,"Line #%d: Token <CONST_CHAR> Lexeme %s found\n",line_count,c);
+				fprintf(logout,"Line# %d: Token <CONST_CHAR> Lexeme %s found\n",line_count,c);
 		}
 
  /* multichar const char */
@@ -300,90 +320,90 @@ NEWLINE \n
  /* operators and punctuators */
 \+|\-	{
 			fprintf(tokenout,"<ADDOP, %s>\n", yytext);
-			fprintf(logout,"Line #%d: Token <ADDOP> Lexeme %s found\n",line_count,yytext);
+			fprintf(logout,"Line# %d: Token <ADDOP> Lexeme %s found\n",line_count,yytext);
 		}
 
 \*|\/|%	{
 			fprintf(tokenout,"<MULOP, %s>\n", yytext);
-			fprintf(logout,"Line #%d: Token <MULOP> Lexeme %s found\n",line_count,yytext);
+			fprintf(logout,"Line# %d: Token <MULOP> Lexeme %s found\n",line_count,yytext);
 		}
 
 \+\+|\-\-	{
 			fprintf(tokenout,"<INCOP, %s>\n", yytext);
-			fprintf(logout,"Line #%d: Token <INCOP> Lexeme %s found\n",line_count,yytext);
+			fprintf(logout,"Line# %d: Token <INCOP> Lexeme %s found\n",line_count,yytext);
 		}
 
 \<=?|>=?|==|!=	{
 			fprintf(tokenout,"<RELOP, %s>\n", yytext);
-			fprintf(logout,"Line #%d: Token <RELOP> Lexeme %s found\n",line_count,yytext);
+			fprintf(logout,"Line# %d: Token <RELOP> Lexeme %s found\n",line_count,yytext);
 		}
 
 =	{
 			fprintf(tokenout,"<ASSIGNOP, %s>\n", yytext);
-			fprintf(logout,"Line #%d: Token <ASSIGNOP> Lexeme %s found\n",line_count,yytext);
+			fprintf(logout,"Line# %d: Token <ASSIGNOP> Lexeme %s found\n",line_count,yytext);
 		}
 
 &&|\|\|	{
 			fprintf(tokenout,"<LOGICOP, %s>\n", yytext);
-			fprintf(logout,"Line #%d: Token <LOGICOP> Lexeme %s found\n",line_count,yytext);
+			fprintf(logout,"Line# %d: Token <LOGICOP> Lexeme %s found\n",line_count,yytext);
 		}
 
 &|\||\^|<<|>>	{
 			fprintf(tokenout,"<BITOP, %s>\n", yytext);
-			fprintf(logout,"Line #%d: Token <BITOP> Lexeme %s found\n",line_count,yytext);
+			fprintf(logout,"Line# %d: Token <BITOP> Lexeme %s found\n",line_count,yytext);
 		}
 
 !	{
 			fprintf(tokenout,"<NOT, %s>\n", yytext);
-			fprintf(logout,"Line #%d: Token <NOT> Lexeme %s found\n",line_count,yytext);
+			fprintf(logout,"Line# %d: Token <NOT> Lexeme %s found\n",line_count,yytext);
 		}
 
 \(	{
 			fprintf(tokenout,"<LPAREN, %s>\n", yytext);
-			fprintf(logout,"Line #%d: Token <LPAREN> Lexeme %s found\n",line_count,yytext);
+			fprintf(logout,"Line# %d: Token <LPAREN> Lexeme %s found\n",line_count,yytext);
 		}
 
 \)	{
 			fprintf(tokenout,"<RPAREN, %s>\n", yytext);
-			fprintf(logout,"Line #%d: Token <RPAREN> Lexeme %s found\n",line_count,yytext);
+			fprintf(logout,"Line# %d: Token <RPAREN> Lexeme %s found\n",line_count,yytext);
 		}
 
 \{	{
 			st.enter_scope();
             fprintf(tokenout,"<LCURL, %s>\n", yytext);
-			fprintf(logout,"Line #%d: Token <LCURL> Lexeme %s found\n",line_count,yytext);
+			fprintf(logout,"Line# %d: Token <LCURL> Lexeme %s found\n",line_count,yytext);
 		}
 
 \}	{
 			st.exit_scope();
             fprintf(tokenout,"<RCURL, %s>\n", yytext);
-			fprintf(logout,"Line #%d: Token <RCURL> Lexeme %s found\n",line_count,yytext);
+			fprintf(logout,"Line# %d: Token <RCURL> Lexeme %s found\n",line_count,yytext);
 		}
 
 \[	{
 			fprintf(tokenout,"<LSQUARE, %s>\n", yytext);
-			fprintf(logout,"Line #%d: Token <LSQUARE> Lexeme %s found\n",line_count,yytext);
+			fprintf(logout,"Line# %d: Token <LSQUARE> Lexeme %s found\n",line_count,yytext);
 		}
 
 \]	{
 			fprintf(tokenout,"<RSQUARE, %s>\n", yytext);
-			fprintf(logout,"Line #%d: Token <RSQUARE> Lexeme %s found\n",line_count,yytext);
+			fprintf(logout,"Line# %d: Token <RSQUARE> Lexeme %s found\n",line_count,yytext);
 		}
 
 \,	{
 			fprintf(tokenout,"<COMMA, %s>\n", yytext);
-			fprintf(logout,"Line #%d: Token <COMMA> Lexeme %s found\n",line_count,yytext);
+			fprintf(logout,"Line# %d: Token <COMMA> Lexeme %s found\n",line_count,yytext);
 		}
 
 \;	{
 			fprintf(tokenout,"<SEMICOLON, %s>\n", yytext);
-			fprintf(logout,"Line #%d: Token <SEMICOLON> Lexeme %s found\n",line_count,yytext);
+			fprintf(logout,"Line# %d: Token <SEMICOLON> Lexeme %s found\n",line_count,yytext);
 		} 
 
  /* identifiers */
 [_A-Za-z][_0-9A-Za-z]* {
             fprintf(tokenout,"<ID, %s>\n", yytext);
-			fprintf(logout,"Line #%d: Token <ID> Lexeme %s found\n",line_count,yytext);
+			fprintf(logout,"Line# %d: Token <ID> Lexeme %s found\n",line_count,yytext);
             int table_no, idx, pos;
             
             bool ret = st.insert(string(yytext), "ID", idx, pos, table_no);
@@ -399,18 +419,34 @@ NEWLINE \n
 
  /* single-line string literal */
 \"{CHAR}+\" {
-            fprintf(tokenout,"<SINGLE LINE STRING, %s>\n", yytext);
-			fprintf(logout,"Line #%d: Token <SINGLE LINE STRING> Lexeme %s found\n",line_count,yytext);
+            
+			fprintf(logout,"Line# %d: Token <SINGLE LINE STRING> Lexeme %s found\n",line_count,yytext);
+			string str = string(yytext);
+			handle_escape_string(str);
+			str = str.substr(1);
+			str.pop_back(); // to eliminate the double quotes from front and back
+			char c[str.length()+1] = {0};
+			strcpy(c, str.c_str());
+			fprintf(tokenout,"<SINGLE LINE STRING, %s>\n", c);
         }
 
  /* multi-line string literal */
 \"({CHAR}*\\{NEWLINE})+{CHAR}*\" {
             string str = string(yytext);
-			handle_multiline_backslash(str);
+			
 			char c[str.length()+1] = {0};
 			strcpy(c, str.c_str());
-			fprintf(tokenout,"<MULTI LINE STRING, %s>\n", c);
-			fprintf(logout,"Line #%d: Token <MULTI LINE STRING> Lexeme %s found\n",line_count,c);
+			
+			fprintf(logout,"Line# %d: Token <MULTI LINE STRING> Lexeme %s found\n",line_count,c);
+			// string str2 = str;
+			str = str.substr(1);
+			str.pop_back(); // to eliminate the double quotes from front and back
+			handle_multiline_backslash(str);
+			handle_escape_string(str);
+			char c2[str.length()+1] = {0};
+			strcpy(c2, str.c_str());
+			fprintf(tokenout,"<MULTI LINE STRING, %s>\n", c2);
+			// handle_newlines(str2);
         }
 
  /* too many decimal points */
