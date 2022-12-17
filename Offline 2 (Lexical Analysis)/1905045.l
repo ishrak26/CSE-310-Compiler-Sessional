@@ -19,6 +19,74 @@ FILE *tokenout;
 
 SymbolTable st(NUM_BUCKETS);
 
+// shift all characters starting from pos+1 to 1 index left
+void shift_string_to_left(string &str, int pos) {
+	for (int i = pos+1; i < str.length(); i++) {
+		str[i-1] = str[i];
+	}
+	str.pop_back();
+}
+
+// convert s[idx] according to escape
+// str[idx] = '\'
+// str[idx+1] exists
+void convert_to_escape(string &str, int idx) {
+	switch(str[idx+1]) {
+		case 'a':
+			str[idx] = '\a';
+			break;
+		case 'b':
+			str[idx] = '\b';
+			break;
+		case 'f':
+			str[idx] = '\f';
+			break;
+		case 'n':
+			str[idx] = '\n';
+			break;
+		case 'r':
+			str[idx] = '\r';
+			break;
+		case 't':
+			str[idx] = '\t';
+			break;
+		case 'v':
+			str[idx] = '\v';
+			break;
+		case '0':
+			str[idx] = '\0';
+			break;
+		case '\'':
+		case '\"':
+		case '\\':
+			str[idx] = str[idx+1];
+			break;
+		default:
+			return;
+	}	
+	shift_string_to_left(str, idx+1);
+}
+
+void handle_escape_string(string &str) {
+	for (int i = str.length()-1; i > 0; i--) {
+		if (str[i-1] == '\\') {
+			convert_to_escape(str, i-1);
+			i--;
+		}
+	}
+}
+
+void handle_multiline_backslash(string &str) {
+	for (int i = str.length()-1; i > 0; i--) {
+		if (str[i] == '\n' && str[i-1] == '\\') {
+			str[i] = ' ';
+			shift_string_to_left(str, i-1);
+			i--;
+			line_count++;
+		}
+	}
+}
+
 %}
 
 WHITESPACE [ \t\f\r\v]+ 
@@ -300,8 +368,12 @@ NEWLINE \n
 
  /* multi-line string literal */
 \"({CHAR}*\\{NEWLINE})+{CHAR}*\" {
-            fprintf(tokenout,"<MULTI LINE STRING, %s>\n", yytext);
-			fprintf(logout,"Line #%d: Token <MULTI LINE STRING> Lexeme %s found\n",line_count,yytext);
+            string str = string(yytext);
+			handle_multiline_backslash(str);
+			char c[str.length()+1] = {0};
+			strcpy(c, str.c_str());
+			fprintf(tokenout,"<MULTI LINE STRING, %s>\n", c);
+			fprintf(logout,"Line #%d: Token <MULTI LINE STRING> Lexeme %s found\n",line_count,c);
         }
 
  /* too many decimal points */
@@ -317,7 +389,7 @@ NEWLINE \n
         }
 
  /* invalid suffix/prefix */
-[0-9]+([ -~]{-}[0-9E\.])+|[ -~]{-}[_A-Za-z][_0-9A-Za-z]* {
+[0-9]+[_A-Za-z]+ {
 			fprintf(logout,"Error at line# %d: INVALID_ID_SUFFIX_NUM_PREFIX %s\n",line_count,yytext);
 			error_count++;
         }
