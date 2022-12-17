@@ -11,7 +11,8 @@
 using namespace std;
 
 const int NUM_BUCKETS = 10;
-int line_count=1;
+int line_count = 1;
+int error_count = 0;
 
 FILE *logout;
 FILE *tokenout;
@@ -139,50 +140,56 @@ NEWLINE \n
  /* character literal */
 \'{CHAR}\' 	{
 				string str = string(yytext);
-                str = str.substr(1, str.length()-2);
-                char c[str.length()+1];
-                strcpy(c, str.c_str());
-                c[str.length()] = 0;
+				if ((str[1] == '\\' && str.length() > 4) || (str.length() > 3)) {
+					fprintf(logout,"Error at line# %d: MULTICHAR_CONST_CHAR %s\n",line_count,yytext);
+					error_count++;
+				}
+				else {
+					str = str.substr(1, str.length()-2);
+					char c[str.length()+1];
+					strcpy(c, str.c_str());
+					c[str.length()] = 0;
 
-                if (c[0] == '\\') {
-                    switch(c[1]) {
-                        case 'a':
-                            c[0] = '\a';
-                            break;
-                        case 'b':
-                            c[0] = '\b';
-                            break;
-                        case 'f':
-                            c[0] = '\f';
-                            break;
-                        case 'n':
-                            c[0] = '\n';
-                            break;
-                        case 'r':
-                            c[0] = '\r';
-                            break;
-                        case 't':
-                            c[0] = '\t';
-                            break;
-                        case 'v':
-                            c[0] = '\v';
-                            break;
-                        case '0':
-                            c[0] = '\0';
-                            break;
-                        case '\'':
-                        case '\"':
-                        case '\\':
-                            c[0] = c[1];
-                            break;
-                        default:
-                            ;
-                    }
-                    c[1] = 0;
-                }
+					if (c[0] == '\\') {
+						switch(c[1]) {
+							case 'a':
+								c[0] = '\a';
+								break;
+							case 'b':
+								c[0] = '\b';
+								break;
+							case 'f':
+								c[0] = '\f';
+								break;
+							case 'n':
+								c[0] = '\n';
+								break;
+							case 'r':
+								c[0] = '\r';
+								break;
+							case 't':
+								c[0] = '\t';
+								break;
+							case 'v':
+								c[0] = '\v';
+								break;
+							case '0':
+								c[0] = '\0';
+								break;
+							case '\'':
+							case '\"':
+							case '\\':
+								c[0] = c[1];
+								break;
+							default:
+								;
+						}
+						c[1] = 0;
+					}
 
-                fprintf(tokenout,"<CONST_CHAR, %s>\n",c);
-				fprintf(logout,"Line #%d: Token <CONST_CHAR> Lexeme %s found\n",line_count,c);
+					fprintf(tokenout,"<CONST_CHAR, %s>\n",c);
+					fprintf(logout,"Line #%d: Token <CONST_CHAR> Lexeme %s found\n",line_count,c);
+				}
         }
 
  /* operators and punctuators */
@@ -297,6 +304,31 @@ NEWLINE \n
 			fprintf(logout,"Line #%d: Token <MULTI LINE STRING> Lexeme %s found\n",line_count,yytext);
         }
 
+ /* too many decimal points */
+[0-9]*\.([0-9]\.)+[0-9]* {
+			fprintf(logout,"Error at line# %d: TOO_MANY_DECIMAL_POINTS %s\n",line_count,yytext);
+			error_count++;
+        }
+
+ /* ill-formed numbers */
+[0-9]+E[0-9]*\.[0-9]* {
+			fprintf(logout,"Error at line# %d: ILLFORMED_NUMBER %s\n",line_count,yytext);
+			error_count++;
+        }
+
+ /* invalid suffix/prefix */
+[0-9]+([ -~]{-}[0-9E\.])+|[ -~]{-}[_A-Za-z][_0-9A-Za-z]* {
+			fprintf(logout,"Error at line# %d: INVALID_ID_SUFFIX_NUM_PREFIX %s\n",line_count,yytext);
+			error_count++;
+        }
+
+ /* empty const char */
+\'\' {
+			fprintf(logout,"Error at line# %d: EMPTY_CONST_CHAR %s\n",line_count,yytext);
+			error_count++;
+        }
+
+
 %%
 
 int main(int argc, char** argv) {
@@ -320,6 +352,7 @@ int main(int argc, char** argv) {
     
 	cout << "hello here\n";
     yylex();
+	fprintf(logout, "Total lines: %d\nTotal errors: %d\n", line_count, error_count);
     cout << "hello there\n";
 	
 	fclose(yyin);
