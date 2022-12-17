@@ -116,7 +116,7 @@ NEWLINE \n
 
 \/\* {
 			BEGIN(MULTI_LINE_COMMENT);
-			cerr << __LINE__ << ' ' << __FILE__ << '\n';
+			// cerr << __LINE__ << ' ' << __FILE__ << '\n';
 		}
 
 <MULTI_LINE_COMMENT><<EOF>> {
@@ -127,7 +127,7 @@ NEWLINE \n
 		}
 
 <MULTI_LINE_COMMENT>[ -~\n\r\t\b\v\\] {
-			cerr << "multi line comment ongoing\n";
+			// cerr << "multi line comment ongoing\n";
 		}
 
  /* keywords */
@@ -224,60 +224,78 @@ NEWLINE \n
 				fprintf(logout,"Line #%d: Token <CONST_FLOAT> Lexeme %s found\n",line_count,yytext);
         }
 
+ /* empty const char */
+\'\' {
+			fprintf(logout,"Error at line# %d: EMPTY_CONST_CHAR %s\n",line_count,yytext);
+			error_count++;
+        }
+
  /* character literal */
 \'{CHAR}\' 	{
 				string str = string(yytext);
-				if ((str[1] == '\\' && str.length() > 4) || (str.length() > 3)) {
-					fprintf(logout,"Error at line# %d: MULTICHAR_CONST_CHAR %s\n",line_count,yytext);
-					error_count++;
-				}
-				else {
-					str = str.substr(1, str.length()-2);
-					char c[str.length()+1];
-					strcpy(c, str.c_str());
-					c[str.length()] = 0;
+				str = str.substr(1, str.length()-2);
+				char c[str.length()+1];
+				strcpy(c, str.c_str());
+				c[str.length()] = 0;
 
-					if (c[0] == '\\') {
-						switch(c[1]) {
-							case 'a':
-								c[0] = '\a';
-								break;
-							case 'b':
-								c[0] = '\b';
-								break;
-							case 'f':
-								c[0] = '\f';
-								break;
-							case 'n':
-								c[0] = '\n';
-								break;
-							case 'r':
-								c[0] = '\r';
-								break;
-							case 't':
-								c[0] = '\t';
-								break;
-							case 'v':
-								c[0] = '\v';
-								break;
-							case '0':
-								c[0] = '\0';
-								break;
-							case '\'':
-							case '\"':
-							case '\\':
-								c[0] = c[1];
-								break;
-							default:
-								;
-						}
-						c[1] = 0;
+				if (c[0] == '\\') {
+					switch(c[1]) {
+						case 'a':
+							c[0] = '\a';
+							break;
+						case 'b':
+							c[0] = '\b';
+							break;
+						case 'f':
+							c[0] = '\f';
+							break;
+						case 'n':
+							c[0] = '\n';
+							break;
+						case 'r':
+							c[0] = '\r';
+							break;
+						case 't':
+							c[0] = '\t';
+							break;
+						case 'v':
+							c[0] = '\v';
+							break;
+						case '0':
+							c[0] = '\0';
+							break;
+						case '\'':
+						case '\"':
+						case '\\':
+							c[0] = c[1];
+							break;
+						default:
+							;
 					}
-
-					fprintf(tokenout,"<CONST_CHAR, %s>\n",c);
-					fprintf(logout,"Line #%d: Token <CONST_CHAR> Lexeme %s found\n",line_count,c);
+					c[1] = 0;
 				}
-        }
+
+				fprintf(tokenout,"<CONST_CHAR, %s>\n",c);
+				fprintf(logout,"Line #%d: Token <CONST_CHAR> Lexeme %s found\n",line_count,c);
+		}
+
+ /* multichar const char */
+\'{CHAR}{CHAR}+\' {
+				fprintf(logout,"Error at line# %d: MULTICHAR_CONST_CHAR %s\n",line_count,yytext);
+				error_count++;
+}
+
+ /* unfinished const char */
+\'{NEWLINE} {
+				line_count++;
+				fprintf(logout,"Error at line# %d: UNFINISHED_CONST_CHAR %s\n",line_count,yytext);
+				error_count++;
+}
+
+\'{CHAR}|\'\\\' {
+				fprintf(logout,"Error at line# %d: UNFINISHED_CONST_CHAR %s\n",line_count,yytext);
+				error_count++;
+}
 
  /* operators and punctuators */
 \+|\-	{
@@ -413,12 +431,6 @@ NEWLINE \n
 			error_count++;
         }
 
- /* empty const char */
-\'\' {
-			fprintf(logout,"Error at line# %d: EMPTY_CONST_CHAR %s\n",line_count,yytext);
-			error_count++;
-        }
-
 
 %%
 
@@ -443,6 +455,7 @@ int main(int argc, char** argv) {
     
 	cout << "hello here\n";
     yylex();
+	st.print_all_scope_table(logout);
 	fprintf(logout, "Total lines: %d\nTotal errors: %d\n", line_count, error_count);
     cout << "hello there\n";
 	
