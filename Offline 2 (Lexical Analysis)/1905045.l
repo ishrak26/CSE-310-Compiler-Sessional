@@ -1,5 +1,8 @@
 %option noyywrap
 
+%x MULTI_LINE_COMMENT
+%x IFILE
+
 %{
 #include<cstdio>
 #include<cstdlib>
@@ -110,6 +113,22 @@ NEWLINE \n
 \/\/([^\n]*\\{NEWLINE})+[^\n]*|\/\*[ -~\n\r\t\b\v\\]*\*\/ {
 			fprintf(logout,"Line #%d: Token <MULTI LINE COMMENT> Lexeme %s found\n",line_count,yytext);
         }
+
+\/\* {
+			BEGIN(MULTI_LINE_COMMENT);
+			cerr << __LINE__ << ' ' << __FILE__ << '\n';
+		}
+
+<MULTI_LINE_COMMENT><<EOF>> {
+			fprintf(logout,"Error at line# %d: UNFINISHED COMMENT %s\n",line_count,yytext);
+			error_count++;
+			// yyterminate();
+			BEGIN(INITIAL);
+		}
+
+<MULTI_LINE_COMMENT>[ -~\n\r\t\b\v\\] {
+			cerr << "multi line comment ongoing\n";
+		}
 
  /* keywords */
 "if"	{
