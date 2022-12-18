@@ -1,6 +1,7 @@
 %option noyywrap
 
 %x MULTI_LINE_COMMENT
+%x STRING
 %x MULTI_LINE_STRING
 %x IFILE
 
@@ -105,7 +106,7 @@ void handle_newlines(string &str) {
 WHITESPACE [ \t\f\r\v]+ 
 LETTER [a-zA-Z]
 DIGIT [0-9]
-CHAR [^'"\\]|\\['"\\abfnrtv0]
+CHAR [^'"\\\n]|\\['"\\abfnrtv0]
 NEWLINE \n
 
 %%
@@ -308,7 +309,7 @@ NEWLINE \n
  /* unfinished const char */
 \'{NEWLINE} {
 				line_count++;
-				fprintf(logout,"Error at line# %d: UNFINISHED_CONST_CHAR %s\n",line_count,yytext);
+				fprintf(logout,"Error at line# %d: UNFINISHED_CONST_CHAR %s",line_count,yytext);
 				error_count++;
 }
 
@@ -449,6 +450,33 @@ NEWLINE \n
 			// handle_newlines(str2);
         }
 
+\" {
+			BEGIN(STRING);
+			fprintf(logout,"Error at line# %d: UNFINISHED_STRING %s",line_count,yytext);
+			error_count++;
+		}
+
+<STRING>{NEWLINE} {
+			fprintf(logout,"%s",yytext);
+			BEGIN(INITIAL);
+			line_count++;
+		}
+
+<STRING><<EOF>> {
+			fprintf(logout,"%s\n",yytext);
+			error_count++;
+			BEGIN(INITIAL);
+		}
+
+<STRING>({CHAR}|\\{NEWLINE})* {
+			string str = string(yytext);
+			
+			fprintf(logout,"%s\n",yytext);
+			error_count++;
+			BEGIN(INITIAL);
+			handle_newlines(str);
+		}
+
  /* too many decimal points */
 [0-9]*\.([0-9]\.)+[0-9]* {
 			fprintf(logout,"Error at line# %d: TOO_MANY_DECIMAL_POINTS %s\n",line_count,yytext);
@@ -489,11 +517,11 @@ int main(int argc, char** argv) {
 
 	yyin= fin;
     
-	cout << "hello here\n";
+	// cout << "hello here\n";
     yylex();
 	st.print_all_scope_table(logout);
 	fprintf(logout, "Total lines: %d\nTotal errors: %d\n", line_count, error_count);
-    cout << "hello there\n";
+    // cout << "hello there\n";
 	
 	fclose(yyin);
 	fclose(tokenout);
