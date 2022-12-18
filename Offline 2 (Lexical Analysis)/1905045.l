@@ -131,12 +131,14 @@ NEWLINE \n
 
 \/\* {
 			BEGIN(MULTI_LINE_COMMENT);
+			fprintf(logout,"Error at line# %d: UNFINISHED COMMENT %s",line_count,yytext);
+			error_count++;
 			// cerr << __LINE__ << ' ' << __FILE__ << '\n';
 		}
 
 <MULTI_LINE_COMMENT><<EOF>> {
-			fprintf(logout,"Error at line# %d: UNFINISHED COMMENT %s\n",line_count,yytext);
-			error_count++;
+			fprintf(logout,"%s\n",yytext);
+			
 			string str = string(yytext);
 			handle_newlines(str);
 			// yyterminate();
@@ -145,6 +147,7 @@ NEWLINE \n
 
 <MULTI_LINE_COMMENT>[ -~\n\r\t\b\v\\] {
 			// cerr << "multi line comment ongoing\n";
+			fprintf(logout,"%s",yytext);
 			string str = string(yytext);
 			if (str[0] == '\n') {
 				line_count++;
@@ -464,7 +467,7 @@ NEWLINE \n
 
 <STRING><<EOF>> {
 			fprintf(logout,"%s\n",yytext);
-			error_count++;
+			// error_count++;
 			BEGIN(INITIAL);
 		}
 
@@ -472,7 +475,7 @@ NEWLINE \n
 			string str = string(yytext);
 			
 			fprintf(logout,"%s\n",yytext);
-			error_count++;
+			// error_count++;
 			BEGIN(INITIAL);
 			handle_newlines(str);
 		}
@@ -495,6 +498,10 @@ NEWLINE \n
 			error_count++;
         }
 
+[ -~]{-}[0-9A-Za-z] {
+			fprintf(logout,"Error at line# %d: UNRECOGNIZED_CHAR %s\n",line_count,yytext);
+			error_count++;
+		}
 
 %%
 
