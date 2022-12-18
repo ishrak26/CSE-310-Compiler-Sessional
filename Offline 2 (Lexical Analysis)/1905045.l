@@ -407,6 +407,7 @@ NEWLINE \n
  /* identifiers */
 [_A-Za-z][_0-9A-Za-z]* {
             fprintf(tokenout,"<ID, %s>\n", yytext);
+			// cerr << "written in token\n";
 			fprintf(logout,"Line# %d: Token <ID> Lexeme %s found\n",line_count,yytext);
             int table_no, idx, pos;
             
