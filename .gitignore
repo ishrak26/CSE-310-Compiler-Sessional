@@ -40,3 +40,31 @@ Offline 1 (Symbol Table)/1905045/
 *.zip
 
 Offline 2 (Lexical Analysis)/1905045/
+
+Offline 2 (Lexical Analysis)/eval/1905045/
+
+Offline 2 (Lexical Analysis)/lex.yy.c
+
+Offline 2 (Lexical Analysis)/log.txt
+
+Offline 2 (Lexical Analysis)/my_output.txt
+
+Offline 2 (Lexical Analysis)/test/
+
+Offline 2 (Lexical Analysis)/test_input.txt
+
+Offline 2 (Lexical Analysis)/token.txt
+
+Offline 2 (Lexical Analysis)/input_lexical_errors_detection.txt
+
+Offline 2 (Lexical Analysis)/input_tokens_identification.txt
+
+Offline 2 (Lexical Analysis)/input_tokens_identification_log.txt
+
+Offline 2 (Lexical Analysis)/input_tokens_identification_token.txt
+
+Offline 3 (Syntax and Semantic Analysis)/lex.yy.c
+
+Offline 3 (Syntax and Semantic Analysis)/y.tab.c
+
+Offline 3 (Syntax and Semantic Analysis)/y.tab.h
