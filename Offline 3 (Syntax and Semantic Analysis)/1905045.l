@@ -11,13 +11,12 @@
 
 using namespace std;
 
-const int NUM_BUCKETS = 11;
-int line_count = 1;
-int error_count = 0;
+extern int line_count;
+extern int error_count;
 
 extern FILE *logout;
 
-extern SymbolTable st(NUM_BUCKETS);
+extern SymbolTable st;
 
 extern YYSTYPE yylval;
 void yyerror(char *);
@@ -32,7 +31,6 @@ NEWLINE \n
 
 {NEWLINE} 	{
 			line_count++;
-			return PRINTLN;
 }
 
 {WHITESPACE} {}
@@ -60,6 +58,9 @@ NEWLINE \n
 		
 "int"	{
 			fprintf(logout,"Line# %d: Token <INT> Lexeme %s found\n",line_count,yytext);
+			yylval.symInfo = new SymbolInfo(string(yytext), "INT");
+			yylval.symInfo->setStartLine(line_count);
+			yylval.symInfo->setEndLine(line_count);
 			return INT;
 		}
 		
@@ -171,6 +172,9 @@ NEWLINE \n
 
 \;	{
 			fprintf(logout,"Line# %d: Token <SEMICOLON> Lexeme %s found\n",line_count,yytext);
+			yylval.symInfo = new SymbolInfo(string(yytext), "SEMICOLON");
+			yylval.symInfo->setStartLine(line_count);
+			yylval.symInfo->setEndLine(line_count);
 			return SEMICOLON;
 		} 
 
@@ -178,17 +182,12 @@ NEWLINE \n
 [_A-Za-z][_0-9A-Za-z]* {
 			// cerr << "written in token\n";
 			fprintf(logout,"Line# %d: Token <ID> Lexeme %s found\n",line_count,yytext);
-            int table_no, idx, pos;
-            
-            bool ret = st.insert(string(yytext), "ID", idx, pos, table_no);
-            
-            if (!ret) {
-                // found 
-                fprintf(logout, "\t%s already exists in the current ScopeTable\n", yytext);
-            }
-            else {
-                st.print_all_scope_table(logout);
-            }
+			if (string(yytext) == "printf") {
+				return PRINTLN;
+			}
+            yylval.symInfo = new SymbolInfo(string(yytext), "ID");
+			yylval.symInfo->setStartLine(line_count);
+			yylval.symInfo->setEndLine(line_count);
 			return ID;
         }
 

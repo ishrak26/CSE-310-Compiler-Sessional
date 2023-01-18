@@ -3,9 +3,8 @@
 #include<cstdlib>
 #include<cstring>
 #include<cmath>
+#include<vector>
 #include "1905045_symbol_table.cpp"
-
-#define YYSTYPE SymbolInfo*
 
 using namespace std;
 
@@ -17,8 +16,19 @@ FILE *fp;
 FILE *logout;
 FILE *parseout;
 
-SymbolTable *symTable;
+int line_count = 1;
+int error_count = 0;
+
+bool FuncInfo::matchParamType(int idx, string type) {
+    assert(idx < params.size());
+    return (params[idx]->getType() == type);
+}
+
 int SymbolTable::table_no = 0;
+const int NUM_BUCKETS = 11;
+SymbolTable st(NUM_BUCKETS);
+
+vector<SymbolInfo*> currentVars;
 
 void yyerror(char *s)
 {
@@ -28,7 +38,13 @@ void yyerror(char *s)
 
 %}
 
-%token IF ELSE FOR WHILE INT FLOAT VOID RETURN CONST_INT CONST_FLOAT ADDOP MULOP INCOP DECOP RELOP ASSIGNOP LOGICOP NOT LPAREN RPAREN LCURL RCURL LSQUARE RSQUARE COMMA SEMICOLON ID PRINTLN
+%union {
+    SymbolInfo* symInfo;
+}
+
+%token<symInfo> IF ELSE FOR WHILE INT FLOAT VOID RETURN CONST_INT CONST_FLOAT ADDOP MULOP INCOP DECOP RELOP ASSIGNOP LOGICOP NOT LPAREN RPAREN LCURL RCURL LSQUARE RSQUARE COMMA SEMICOLON ID PRINTLN
+
+%type<symInfo> start program unit var_declaration func_declaration func_definition type_specifier parameter_list compound_statement statements declaration_list statement expression_statement expression logic_expression variable rel_expression simple_expression term unary_expression factor argument_list arguments 
 
 /* %left 
 %right
@@ -41,14 +57,33 @@ void yyerror(char *s)
 start : program
 	{
 		//write your code in this block in all the similar blocks below
+        $$ = new SymbolInfo("start : program", "");
+        $$->setRule(true);
+        $$->setStartLine($1->getStartLine());
+        $$->setEndLine($1->getEndLine());
+        $$->addTreeChild($1);
+
+        $$->printTree(parseout, 0);
 	}
 	;
 
 program : program unit 
-	| unit
+	| unit {
+        $$ = new SymbolInfo("program : unit", "");
+        $$->setRule(true);
+        $$->setStartLine($1->getStartLine());
+        $$->setEndLine($1->getEndLine());
+        $$->addTreeChild($1);
+    }
 	;
 	
-unit : var_declaration
+unit : var_declaration {
+            $$ = new SymbolInfo("unit : var_declaration", "");
+            $$->setRule(true);
+            $$->setStartLine($1->getStartLine());
+            $$->setEndLine($1->getEndLine());
+            $$->addTreeChild($1);
+        }
      | func_declaration
      | func_definition
      ;
@@ -73,17 +108,42 @@ compound_statement : LCURL statements RCURL
  		    | LCURL RCURL
  		    ;
  		    
-var_declaration : type_specifier declaration_list SEMICOLON
+var_declaration : type_specifier declaration_list SEMICOLON {
+                $$ = new SymbolInfo("var_declaration : type_specifier declaration_list SEMICOLON", "");
+                for (int i = 0; i < currentVars.size(); i++) {
+                    currentVars[i]->setType($1->getType());
+                }
+                currentVars.clear();
+                $$->setRule(true);
+                $$->setStartLine($1->getStartLine());
+                $$->setEndLine($3->getEndLine());
+                $$->addTreeChild($1);
+                $$->addTreeChild($2);
+                $$->addTreeChild($3);
+            }
  		 ;
  		 
-type_specifier	: INT
+type_specifier	: INT {
+                $$ = new SymbolInfo("type_specifier : INT", "INT");
+                $$->setRule(true);
+                $$->setStartLine($1->getStartLine());
+                $$->setEndLine($1->getEndLine());
+                $$->addTreeChild($1);
+            }
  		| FLOAT
  		| VOID
  		;
  		
 declaration_list : declaration_list COMMA ID
  		  | declaration_list COMMA ID LSQUARE CONST_INT RSQUARE
- 		  | ID
+ 		  | ID {
+            $$ = new SymbolInfo("declaration_list : ID", "");
+            currentVars.push_back($$);
+            $$->setRule(true);
+            $$->setStartLine($1->getStartLine());
+            $$->setEndLine($1->getEndLine());
+            $$->addTreeChild($1);
+          }
  		  | ID LSQUARE CONST_INT RSQUARE
  		  ;
  		  
