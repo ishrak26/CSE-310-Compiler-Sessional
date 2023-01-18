@@ -52,6 +52,11 @@ public:
         return curr_scope->insert(name, type, idx, pos);
     }
 
+    bool insert(SymbolInfo* symInfo, int &idx, int &pos, int &table_id) {
+        table_id = curr_scope->getID();
+        return curr_scope->insert(symInfo, idx, pos);
+    }
+
     bool remove(const string &name, int &idx, int &pos, int &table_id) {
         table_id = curr_scope->getID();
         return curr_scope->deleteSymbol(name, idx, pos);

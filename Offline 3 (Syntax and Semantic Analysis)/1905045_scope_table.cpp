@@ -65,14 +65,17 @@ class ScopeTable {
         fprintf(logout, "\t%d--> ", idx+1);
         
         while (curr != nullptr) {
-            if (curr->getType() == "ID") {
-                fprintf(logout, "<%s,%s> ", curr->getName().c_str(), curr->getType().c_str());
-            }
-            else if (curr->getArray()) {
-                fprintf(logout, "<%s,ARRAY,%s> ", curr->getName().c_str(), curr->getType().c_str());
+            if (curr->getArray()) {
+                fprintf(logout, "<%s,ARRAY,%s> ", curr->getName().c_str(), curr->getDataType().c_str());
             }
             else if (curr->getFunction()) {
                 fprintf(logout, "<%s,FUNCTION,%s> ", curr->getName().c_str(), curr->getType().c_str());
+            }
+            else if (curr->getType() == "ID") {
+                fprintf(logout, "<%s,%s> ", curr->getName().c_str(), curr->getDataType().c_str());
+            }
+            else {
+                fprintf(logout, "<%s,%s> ", curr->getName().c_str(), curr->getType().c_str());
             }
             
             curr = curr->getNextSymbol();
@@ -116,6 +119,29 @@ public:
             // not found
             // need to insert
             SymbolInfo *new_sym = new SymbolInfo(symbol, type);
+            if (ret == nullptr) {
+                arr[idx] = new_sym;
+            }
+            else {
+                ret->setNextSymbol(new_sym);
+            }
+            return true;
+        }
+        else {
+            // found
+            // don't insert
+            return false;
+        }
+    }
+
+    // returns false if found
+    bool insert(SymbolInfo* symInfo, int &idx, int &pos) {
+        idx = SDBMHash(symInfo->getName());
+        SymbolInfo *ret = find_in_chain(symInfo->getName(), idx, 1, pos);
+        if (ret == nullptr || ret->getName() != symInfo->getName()) {
+            // not found
+            // need to insert
+            SymbolInfo *new_sym = symInfo;
             if (ret == nullptr) {
                 arr[idx] = new_sym;
             }

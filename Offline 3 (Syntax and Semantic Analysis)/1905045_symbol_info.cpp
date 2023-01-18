@@ -7,8 +7,10 @@ using namespace std;
 class SymbolInfo {
     string name;
     string type;
+    string dataType;
     SymbolInfo *next_symbol;
     bool isArray;
+    int arraySize;
     bool isFunction;
     FuncInfo *funcInfo;
     bool isRule;
@@ -118,5 +120,21 @@ public:
         else {
             fprintf(fp, "%s : %s\t<Line: %d>\n", type.c_str(), name.c_str(), startLine);
         }
+    }
+
+    void setDataType(string dataType) {
+        this->dataType = dataType;
+    }
+
+    string getDataType() const {
+        return dataType;
+    }
+
+    void setArraySize(int arraySize) {
+        this->arraySize = arraySize;
+    }
+
+    int getArraySize() const {
+        return arraySize;
     }
 };

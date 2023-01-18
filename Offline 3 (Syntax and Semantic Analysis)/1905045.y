@@ -64,6 +64,7 @@ start : program
         $$->addTreeChild($1);
 
         $$->printTree(parseout, 0);
+        st.print_all_scope_table(logout);
 	}
 	;
 
@@ -110,8 +111,16 @@ compound_statement : LCURL statements RCURL
  		    
 var_declaration : type_specifier declaration_list SEMICOLON {
                 $$ = new SymbolInfo("var_declaration : type_specifier declaration_list SEMICOLON", "");
+                int table_no, idx, pos;
                 for (int i = 0; i < currentVars.size(); i++) {
-                    currentVars[i]->setType($1->getType());
+                    currentVars[i]->setDataType($1->getType());
+                    
+                    bool ret = st.insert(currentVars[i], idx, pos, table_no);
+                    if (!ret) {
+                        // found 
+                        fprintf(logout, "\t%s already exists in the current ScopeTable\n", currentVars[i]->getName().c_str());
+                    }
+                    
                 }
                 currentVars.clear();
                 $$->setRule(true);
@@ -134,17 +143,52 @@ type_specifier	: INT {
  		| VOID
  		;
  		
-declaration_list : declaration_list COMMA ID
- 		  | declaration_list COMMA ID LSQUARE CONST_INT RSQUARE
+declaration_list : declaration_list COMMA ID {
+                $$ = new SymbolInfo("declaration_list : declaration_list COMMA ID", "");
+                currentVars.push_back($3);
+                $$->setRule(true);
+                $$->setStartLine($1->getStartLine());
+                $$->setEndLine($3->getEndLine());
+                $$->addTreeChild($1);
+                $$->addTreeChild($2);
+                $$->addTreeChild($3);
+            }
+ 		  | declaration_list COMMA ID LSQUARE CONST_INT RSQUARE {
+            $$ = new SymbolInfo("declaration_list COMMA ID LSQUARE CONST_INT RSQUARE", "");
+            $3->setArray(true);
+            $3->setArraySize(atoi($5->getName().c_str()));
+            currentVars.push_back($3);
+            $$->setRule(true);
+            $$->setStartLine($1->getStartLine());
+            $$->setEndLine($6->getEndLine());
+            $$->addTreeChild($1);
+            $$->addTreeChild($2);
+            $$->addTreeChild($3);
+            $$->addTreeChild($4);
+            $$->addTreeChild($5);
+            $$->addTreeChild($6);
+          }
  		  | ID {
             $$ = new SymbolInfo("declaration_list : ID", "");
-            currentVars.push_back($$);
+            currentVars.push_back($1);
             $$->setRule(true);
             $$->setStartLine($1->getStartLine());
             $$->setEndLine($1->getEndLine());
             $$->addTreeChild($1);
           }
- 		  | ID LSQUARE CONST_INT RSQUARE
+ 		  | ID LSQUARE CONST_INT RSQUARE {
+            $$ = new SymbolInfo("declaration_list : ID LSQUARE CONST_INT RSQUARE", "");
+            $1->setArray(true);
+            $1->setArraySize(atoi($3->getName().c_str()));
+            currentVars.push_back($1);
+            $$->setRule(true);
+            $$->setStartLine($1->getStartLine());
+            $$->setEndLine($4->getEndLine());
+            $$->addTreeChild($1);
+            $$->addTreeChild($2);
+            $$->addTreeChild($3);
+            $$->addTreeChild($4);
+          }
  		  ;
  		  
 statements : statement

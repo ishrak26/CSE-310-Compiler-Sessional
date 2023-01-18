@@ -82,6 +82,9 @@ NEWLINE \n
  /* integer literal */
 {DIGIT}+ 	{
 				fprintf(logout,"Line# %d: Token <CONST_INT> Lexeme %s found\n",line_count,yytext);
+				yylval.symInfo = new SymbolInfo(string(yytext), "INT");
+				yylval.symInfo->setStartLine(line_count);
+				yylval.symInfo->setEndLine(line_count);
 				return CONST_INT;
         }
 
@@ -157,16 +160,25 @@ NEWLINE \n
 
 \[	{
 			fprintf(logout,"Line# %d: Token <LSQUARE> Lexeme %s found\n",line_count,yytext);
+			yylval.symInfo = new SymbolInfo(string(yytext), "LSQUARE");
+			yylval.symInfo->setStartLine(line_count);
+			yylval.symInfo->setEndLine(line_count);
 			return LSQUARE;
 		}
 
 \]	{
 			fprintf(logout,"Line# %d: Token <RSQUARE> Lexeme %s found\n",line_count,yytext);
+			yylval.symInfo = new SymbolInfo(string(yytext), "RSQUARE");
+			yylval.symInfo->setStartLine(line_count);
+			yylval.symInfo->setEndLine(line_count);
 			return RSQUARE;
 		}
 
 \,	{
 			fprintf(logout,"Line# %d: Token <COMMA> Lexeme %s found\n",line_count,yytext);
+			yylval.symInfo = new SymbolInfo(string(yytext), "COMMA");
+			yylval.symInfo->setStartLine(line_count);
+			yylval.symInfo->setEndLine(line_count);
 			return COMMA;
 		}
 
