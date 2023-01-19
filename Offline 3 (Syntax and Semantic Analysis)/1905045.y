@@ -68,7 +68,14 @@ start : program
 	}
 	;
 
-program : program unit 
+program : program unit {
+            $$ = new SymbolInfo("program : program unit", "");
+            $$->setRule(true);
+            $$->setStartLine($1->getStartLine());
+            $$->setEndLine($2->getEndLine());
+            $$->addTreeChild($1);
+            $$->addTreeChild($2);
+        }
 	| unit {
         $$ = new SymbolInfo("program : unit", "");
         $$->setRule(true);
@@ -85,16 +92,66 @@ unit : var_declaration {
             $$->setEndLine($1->getEndLine());
             $$->addTreeChild($1);
         }
-     | func_declaration
-     | func_definition
+     | func_declaration {
+            $$ = new SymbolInfo("unit : func_declaration", "");
+            $$->setRule(true);
+            $$->setStartLine($1->getStartLine());
+            $$->setEndLine($1->getEndLine());
+            $$->addTreeChild($1);
+        }
+     | func_definition {
+            $$ = new SymbolInfo("unit : func_definition", "");
+            $$->setRule(true);
+            $$->setStartLine($1->getStartLine());
+            $$->setEndLine($1->getEndLine());
+            $$->addTreeChild($1);
+        }
      ;
      
 func_declaration : type_specifier ID LPAREN parameter_list RPAREN SEMICOLON
-		| type_specifier ID LPAREN RPAREN SEMICOLON
+		| type_specifier ID LPAREN RPAREN SEMICOLON {
+                $$ = new SymbolInfo("func_declaration : type_specifier ID LPAREN RPAREN SEMICOLON", "");
+                $$->setRule(true);
+                $$->setStartLine($1->getStartLine());
+                $$->setEndLine($5->getEndLine());
+                $$->addTreeChild($1);
+                $$->addTreeChild($2);
+                $$->addTreeChild($3);
+                $$->addTreeChild($4);
+                $$->addTreeChild($5);
+
+                $2->setFunction(true);
+                $2->setFuncReturnType($1->getType());
+                int table_no, idx, pos;
+                bool ret = st.insert($2, idx, pos, table_no);
+                if (!ret) {
+                    // found 
+                    fprintf(logout, "\t%s already exists in the current ScopeTable\n", $2->getName().c_str());
+                }
+            }
 		;
 		 
 func_definition : type_specifier ID LPAREN parameter_list RPAREN compound_statement
-		| type_specifier ID LPAREN RPAREN compound_statement
+		| type_specifier ID LPAREN RPAREN compound_statement {
+                $$ = new SymbolInfo("func_definition : type_specifier ID LPAREN RPAREN compound_statement", "");
+                $$->setRule(true);
+                $$->setStartLine($1->getStartLine());
+                $$->setEndLine($5->getEndLine());
+                $$->addTreeChild($1);
+                $$->addTreeChild($2);
+                $$->addTreeChild($3);
+                $$->addTreeChild($4);
+                $$->addTreeChild($5);
+
+                $2->setFunction(true);
+                $2->setFuncReturnType($1->getType());
+                int table_no, idx, pos;
+                bool ret = st.insert($2, idx, pos, table_no);
+                if (!ret) {
+                    // found 
+                    fprintf(logout, "\t%s already exists in the current ScopeTable\n", $2->getName().c_str());
+                }
+        }
  		;				
 
 
@@ -105,7 +162,15 @@ parameter_list  : parameter_list COMMA type_specifier ID
  		;
 
  		
-compound_statement : LCURL statements RCURL
+compound_statement : LCURL statements RCURL {
+                $$ = new SymbolInfo("compound_statement : LCURL statements RCURL", "");
+                $$->setRule(true);
+                $$->setStartLine($1->getStartLine());
+                $$->setEndLine($3->getEndLine());
+                $$->addTreeChild($1);
+                $$->addTreeChild($2);
+                $$->addTreeChild($3);
+            }
  		    | LCURL RCURL
  		    ;
  		    
@@ -139,8 +204,20 @@ type_specifier	: INT {
                 $$->setEndLine($1->getEndLine());
                 $$->addTreeChild($1);
             }
- 		| FLOAT
- 		| VOID
+ 		| FLOAT {
+            $$ = new SymbolInfo("type_specifier : FLOAT", "FLOAT");
+            $$->setRule(true);
+            $$->setStartLine($1->getStartLine());
+            $$->setEndLine($1->getEndLine());
+            $$->addTreeChild($1);
+        }
+ 		| VOID {
+            $$ = new SymbolInfo("type_specifier : VOID", "VOID");
+            $$->setRule(true);
+            $$->setStartLine($1->getStartLine());
+            $$->setEndLine($1->getEndLine());
+            $$->addTreeChild($1);
+        }
  		;
  		
 declaration_list : declaration_list COMMA ID {
@@ -191,11 +268,30 @@ declaration_list : declaration_list COMMA ID {
           }
  		  ;
  		  
-statements : statement
-	   | statements statement
+statements : statement {
+            $$ = new SymbolInfo("statements : statement", "");
+            $$->setRule(true);
+            $$->setStartLine($1->getStartLine());
+            $$->setEndLine($1->getEndLine());
+            $$->addTreeChild($1);
+        }
+	   | statements statement {
+            $$ = new SymbolInfo("statements : statements statement", "");
+            $$->setRule(true);
+            $$->setStartLine($1->getStartLine());
+            $$->setEndLine($2->getEndLine());
+            $$->addTreeChild($1);
+            $$->addTreeChild($2);
+       }
 	   ;
 	   
-statement : var_declaration
+statement : var_declaration {
+            $$ = new SymbolInfo("statement : var_declaration", "");
+            $$->setRule(true);
+            $$->setStartLine($1->getStartLine());
+            $$->setEndLine($1->getEndLine());
+            $$->addTreeChild($1);
+        }
 	  | expression_statement
 	  | compound_statement
 	  | FOR LPAREN expression_statement expression_statement expression RPAREN statement

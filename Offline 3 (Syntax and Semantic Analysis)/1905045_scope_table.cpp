@@ -69,7 +69,7 @@ class ScopeTable {
                 fprintf(logout, "<%s,ARRAY,%s> ", curr->getName().c_str(), curr->getDataType().c_str());
             }
             else if (curr->getFunction()) {
-                fprintf(logout, "<%s,FUNCTION,%s> ", curr->getName().c_str(), curr->getType().c_str());
+                fprintf(logout, "<%s,FUNCTION,%s> ", curr->getName().c_str(), curr->getFuncReturnType().c_str());
             }
             else if (curr->getType() == "ID") {
                 fprintf(logout, "<%s,%s> ", curr->getName().c_str(), curr->getDataType().c_str());

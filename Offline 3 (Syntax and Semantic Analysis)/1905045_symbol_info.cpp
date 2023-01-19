@@ -78,6 +78,19 @@ public:
         return isFunction;
     }
 
+    void setFuncReturnType(string returnType) {
+        if (isFunction) {
+            funcInfo->setReturnType(returnType);
+        }
+    }
+
+    string getFuncReturnType() const {
+        if (isFunction) {
+            return funcInfo->getReturnType();
+        }
+        return "";
+    }
+
     void setRule(bool isRule) {
         this->isRule = isRule;
     }
