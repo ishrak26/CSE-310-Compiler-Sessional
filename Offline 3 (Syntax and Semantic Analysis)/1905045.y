@@ -292,53 +292,179 @@ statement : var_declaration {
             $$->setEndLine($1->getEndLine());
             $$->addTreeChild($1);
         }
-	  | expression_statement
+	  | expression_statement {
+            $$ = new SymbolInfo("statement : expression_statement", "");
+            $$->setRule(true);
+            $$->setStartLine($1->getStartLine());
+            $$->setEndLine($1->getEndLine());
+            $$->addTreeChild($1);
+        }
 	  | compound_statement
 	  | FOR LPAREN expression_statement expression_statement expression RPAREN statement
 	  | IF LPAREN expression RPAREN statement
 	  | IF LPAREN expression RPAREN statement ELSE statement
 	  | WHILE LPAREN expression RPAREN statement
 	  | PRINTLN LPAREN ID RPAREN SEMICOLON
-	  | RETURN expression SEMICOLON
+	  | RETURN expression SEMICOLON {
+            $$ = new SymbolInfo("statement : RETURN expression SEMICOLON", "");
+            $$->setRule(true);
+            $$->setStartLine($1->getStartLine());
+            $$->setEndLine($3->getEndLine());
+            $$->addTreeChild($1);
+            $$->addTreeChild($2);
+            $$->addTreeChild($3);
+        }
 	  ;
 	  
 expression_statement 	: SEMICOLON			
-			| expression SEMICOLON 
+			| expression SEMICOLON {
+                $$ = new SymbolInfo("expression_statement : expression SEMICOLON", "");
+                $$->setRule(true);
+                $$->setStartLine($1->getStartLine());
+                $$->setEndLine($2->getEndLine());
+                $$->addTreeChild($1);
+                $$->addTreeChild($2);
+            }
 			;
 	  
-variable : ID 		
-	 | ID LSQUARE expression RSQUARE
+variable : ID {
+        $$ = new SymbolInfo("variable : ID", "");
+        $$->setRule(true);
+        $$->setStartLine($1->getStartLine());
+        $$->setEndLine($1->getEndLine());
+        $$->addTreeChild($1);
+    }	
+	 | ID LSQUARE expression RSQUARE {
+        $$ = new SymbolInfo("variable : ID LSQUARE expression RSQUARE", "");
+        $$->setRule(true);
+        $$->setStartLine($1->getStartLine());
+        $$->setEndLine($4->getEndLine());
+        $$->addTreeChild($1);
+        $$->addTreeChild($2);
+        $$->addTreeChild($3);
+        $$->addTreeChild($4);
+     }
 	 ;
 	 
- expression : logic_expression	
-	   | variable ASSIGNOP logic_expression 	
+expression : logic_expression	{
+            $$ = new SymbolInfo("expression : logic_expression", "");
+            $$->setRule(true);
+            $$->setStartLine($1->getStartLine());
+            $$->setEndLine($1->getEndLine());
+            $$->addTreeChild($1);
+        }
+	   | variable ASSIGNOP logic_expression {
+            $$ = new SymbolInfo("expression : variable ASSIGNOP logic_expression", "");
+            $$->setRule(true);
+            $$->setStartLine($1->getStartLine());
+            $$->setEndLine($3->getEndLine());
+            $$->addTreeChild($1);
+            $$->addTreeChild($2);
+            $$->addTreeChild($3);
+        }	
 	   ;
 			
-logic_expression : rel_expression 	
-		 | rel_expression LOGICOP rel_expression 	
+logic_expression : rel_expression {
+            $$ = new SymbolInfo("logic_expression : rel_expression", "");
+            $$->setRule(true);
+            $$->setStartLine($1->getStartLine());
+            $$->setEndLine($1->getEndLine());
+            $$->addTreeChild($1);
+        }	
+		 | rel_expression LOGICOP rel_expression {
+            $$ = new SymbolInfo("logic_expression : rel_expression LOGICOP rel_expression", "");
+            $$->setRule(true);
+            $$->setStartLine($1->getStartLine());
+            $$->setEndLine($3->getEndLine());
+            $$->addTreeChild($1);
+            $$->addTreeChild($2);
+            $$->addTreeChild($3);
+         }	
 		 ;
 			
-rel_expression	: simple_expression 
-		| simple_expression RELOP simple_expression	
+rel_expression	: simple_expression {
+            $$ = new SymbolInfo("rel_expression	: simple_expression", "");
+            $$->setRule(true);
+            $$->setStartLine($1->getStartLine());
+            $$->setEndLine($1->getEndLine());
+            $$->addTreeChild($1);
+        }
+		| simple_expression RELOP simple_expression	{
+            $$ = new SymbolInfo("rel_expression	: simple_expression RELOP simple_expression", "");
+            $$->setRule(true);
+            $$->setStartLine($1->getStartLine());
+            $$->setEndLine($3->getEndLine());
+            $$->addTreeChild($1);
+            $$->addTreeChild($2);
+            $$->addTreeChild($3);
+        }
 		;
 				
-simple_expression : term 
-		  | simple_expression ADDOP term 
+simple_expression : term {
+            $$ = new SymbolInfo("simple_expression : term", "");
+            $$->setRule(true);
+            $$->setStartLine($1->getStartLine());
+            $$->setEndLine($1->getEndLine());
+            $$->addTreeChild($1);
+        }
+		  | simple_expression ADDOP term {
+            $$ = new SymbolInfo("simple_expression : simple_expression ADDOP term", "");
+            $$->setRule(true);
+            $$->setStartLine($3->getStartLine());
+            $$->setEndLine($1->getEndLine());
+            $$->addTreeChild($1);
+            $$->addTreeChild($2);
+            $$->addTreeChild($3);
+          }
 		  ;
 					
-term :	unary_expression
-     |  term MULOP unary_expression
+term :	unary_expression {
+            $$ = new SymbolInfo("term :	unary_expression", "");
+            $$->setRule(true);
+            $$->setStartLine($1->getStartLine());
+            $$->setEndLine($1->getEndLine());
+            $$->addTreeChild($1);
+        }
+     |  term MULOP unary_expression {
+            $$ = new SymbolInfo("term :	term MULOP unary_expression", "");
+            $$->setRule(true);
+            $$->setStartLine($1->getStartLine());
+            $$->setEndLine($3->getEndLine());
+            $$->addTreeChild($1);
+            $$->addTreeChild($2);
+            $$->addTreeChild($3);
+        }
      ;
 
 unary_expression : ADDOP unary_expression  
 		 | NOT unary_expression 
-		 | factor 
+		 | factor {
+            $$ = new SymbolInfo("unary_expression : factor", "");
+            $$->setRule(true);
+            $$->setStartLine($1->getStartLine());
+            $$->setEndLine($1->getEndLine());
+            $$->addTreeChild($1);
+         }
 		 ;
 	
 factor	: variable 
 	| ID LPAREN argument_list RPAREN
-	| LPAREN expression RPAREN
-	| CONST_INT 
+	| LPAREN expression RPAREN {
+        $$ = new SymbolInfo("factor	: LPAREN expression RPAREN", "");
+        $$->setRule(true);
+        $$->setStartLine($1->getStartLine());
+        $$->setEndLine($3->getEndLine());
+        $$->addTreeChild($1);
+        $$->addTreeChild($2);
+        $$->addTreeChild($3);
+    }
+	| CONST_INT {
+        $$ = new SymbolInfo("factor	: CONST_INT", "");
+        $$->setRule(true);
+        $$->setStartLine($1->getStartLine());
+        $$->setEndLine($1->getEndLine());
+        $$->addTreeChild($1);
+    }
 	| CONST_FLOAT
 	| variable INCOP 
 	| variable DECOP
