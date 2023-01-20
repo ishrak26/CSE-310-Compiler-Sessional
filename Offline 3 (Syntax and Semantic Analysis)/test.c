@@ -29,3 +29,16 @@ int z(int d){
 	return d;
 }
 
+int var(int a){
+	return a;
+}
+
+void foo4(int a){
+	return a+3;
+}
+
+int main(){
+	int a,b,c[4],dd,ee;
+	void e;
+	float a,c[7];
+}

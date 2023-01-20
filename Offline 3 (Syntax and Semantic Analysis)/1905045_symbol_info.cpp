@@ -105,6 +105,13 @@ public:
         return "";
     }
 
+    int getFuncParamCount() const {
+        if (isFunction) {
+            return funcInfo->paramSize();
+        }
+        return 0;
+    }
+
     FuncInfo* getFuncInfo() const {
         return funcInfo;
     }

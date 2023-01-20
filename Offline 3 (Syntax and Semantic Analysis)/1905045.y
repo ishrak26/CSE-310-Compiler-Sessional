@@ -142,6 +142,7 @@ func_declaration : type_specifier ID LPAREN parameter_list RPAREN SEMICOLON {
                 $2->setFuncReturnType($1->getType());
                 
                 st.exit_scope();
+                SymbolTable::table_no--;
                 
                 int table_no, idx, pos;
                 bool ret = st.insert($2, idx, pos, table_no);
@@ -205,7 +206,7 @@ func_definition : type_specifier ID LPAREN parameter_list RPAREN compound_statem
                     SymbolInfo *symInfo = st.look_up($2->getName(), idx, pos, table_no);
                     if (symInfo != nullptr) {
                         if (symInfo->getFunction()) {
-                            if ($2->getFuncReturnType() != symInfo->getFuncReturnType()) {
+                            if ($2->getFuncReturnType() != symInfo->getFuncReturnType() || int(currentParams.size()) != symInfo->getFuncParamCount()) {
                                 fprintf(errorout,"Line# %d: Conflicting types for \'%s\'\n",$2->getStartLine(),$2->getName().c_str());
                                 error_count++;
                             }
@@ -249,7 +250,7 @@ func_definition : type_specifier ID LPAREN parameter_list RPAREN compound_statem
                     SymbolInfo *symInfo = st.look_up($2->getName(), idx, pos, table_no);
                     if (symInfo != nullptr) {
                         if (symInfo->getFunction()) {
-                            if ($2->getFuncReturnType() != symInfo->getFuncReturnType()) {
+                            if ($2->getFuncReturnType() != symInfo->getFuncReturnType() || int(currentParams.size()) != symInfo->getFuncParamCount()) {
                                 fprintf(errorout,"Line# %d: Conflicting types for \'%s\'\n",$2->getStartLine(),$2->getName().c_str());
                                 error_count++;
                             }
@@ -395,16 +396,33 @@ compound_statement : LCURL statements RCURL {
 var_declaration : type_specifier declaration_list SEMICOLON {
                 $$ = new SymbolInfo("var_declaration : type_specifier declaration_list SEMICOLON ", "");
                 fprintf(logout, "%s\n", $$->getName().c_str());
+                
                 int table_no, idx, pos;
-                for (int i = 0; i < currentVars.size(); i++) {
-                    currentVars[i]->setDataType($1->getType());
-                    
-                    bool ret = st.insert(new SymbolInfo(currentVars[i]), idx, pos, table_no);
-                    if (!ret) {
-                        // found 
-                        fprintf(logout, "\t%s already exists in the current ScopeTable\n", currentVars[i]->getName().c_str());
+                for (int i = 0; i < int(currentVars.size()); i++) {
+                    if ($1->getType() == "VOID") {
+                        fprintf(errorout,"Line# %d: Variable or field \'%s\' declared void\n",currentVars[i]->getStartLine(),currentVars[i]->getName().c_str());
+                        error_count++;
                     }
+                    else {
+                        currentVars[i]->setDataType($1->getType());
                     
+                        bool ret = st.insert(new SymbolInfo(currentVars[i]), idx, pos, table_no);
+                        if (!ret) {
+                            // found 
+                            SymbolInfo* symInfo = st.look_up(currentVars[i]->getName(), idx, pos, table_no);
+                            if (symInfo != nullptr) {
+                                if (symInfo->getDataType() != currentVars[i]->getDataType()) {
+                                    fprintf(errorout,"Line# %d: Conflicting types for \'%s\'\n",currentVars[i]->getStartLine(),currentVars[i]->getName().c_str());
+                                    error_count++;
+                                }
+                                else {
+                                    fprintf(errorout,"Line# %d: Redeclaration of variable \'%s\'\n",currentVars[i]->getStartLine(),currentVars[i]->getName().c_str());
+                                    error_count++;
+                                }
+                            }
+                            // fprintf(logout, "\t%s already exists in the current ScopeTable\n", currentVars[i]->getName().c_str());
+                        }
+                    }
                 }
                 currentVars.clear();
                 $$->setRule(true);
