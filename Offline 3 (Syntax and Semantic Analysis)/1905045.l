@@ -17,6 +17,7 @@ extern int error_count;
 extern FILE *logout;
 
 extern SymbolTable st;
+extern bool scopeStarted;
 
 extern YYSTYPE yylval;
 void yyerror(char *);
@@ -201,7 +202,9 @@ NEWLINE \n
 		}
 
 \{	{
-			// st.enter_scope();
+			if (!scopeStarted) {
+				st.enter_scope(); // for empty parameter case
+			}
 			fprintf(logout,"Line# %d: Token <LCURL> Lexeme %s found\n",line_count,yytext);
 			yylval.symInfo = new SymbolInfo(string(yytext), "LCURL");
 			yylval.symInfo->setStartLine(line_count);

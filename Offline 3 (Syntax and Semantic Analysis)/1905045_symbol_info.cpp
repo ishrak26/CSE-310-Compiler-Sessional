@@ -35,6 +35,20 @@ public:
         init();
     }
 
+    SymbolInfo(const SymbolInfo* symInfo) {
+        name = symInfo->getName();
+        type = symInfo->getType();
+        dataType = symInfo->getDataType();
+        next_symbol = symInfo->getNextSymbol();
+        isArray = symInfo->getArray();
+        arraySize = symInfo->getArraySize();
+        isFunction = symInfo->getFunction();
+        funcInfo = symInfo->getFuncInfo();
+        isRule = symInfo->getRule();
+        startLine = symInfo->getStartLine();
+        endLine = symInfo->getEndLine();
+    }
+
     void setName(const string &name) {
         this->name = name;
     }
@@ -63,7 +77,7 @@ public:
         this->isArray = isArray;
     }
 
-    bool getArray() {
+    bool getArray() const {
         return isArray;
     }
 
@@ -74,7 +88,7 @@ public:
         }
     }
 
-    bool getFunction() {
+    bool getFunction() const {
         return isFunction;
     }
 
@@ -89,6 +103,16 @@ public:
             return funcInfo->getReturnType();
         }
         return "";
+    }
+
+    FuncInfo* getFuncInfo() const {
+        return funcInfo;
+    }
+
+    void addFuncParam(SymbolInfo* symInfo) {
+        if (isFunction) {
+            return funcInfo->addParam(symInfo);
+        }
     }
 
     void setRule(bool isRule) {
