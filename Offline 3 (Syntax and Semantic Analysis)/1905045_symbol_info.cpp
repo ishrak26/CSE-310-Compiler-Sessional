@@ -112,6 +112,13 @@ public:
         return 0;
     }
 
+    bool matchFuncParamType(int idx, string type) {
+        if (isFunction) {
+            return funcInfo->matchParamType(idx, type);
+        }
+        return false;
+    }
+
     FuncInfo* getFuncInfo() const {
         return funcInfo;
     }

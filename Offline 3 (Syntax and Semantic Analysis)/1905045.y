@@ -22,7 +22,7 @@ int error_count = 0;
 
 bool FuncInfo::matchParamType(int idx, string type) {
     assert(idx < params.size());
-    return (params[idx]->getType() == type);
+    return (params[idx]->getDataType() == type);
 }
 
 bool FuncInfo::checkParam(string name) {
@@ -40,6 +40,7 @@ SymbolTable st(NUM_BUCKETS);
 
 vector<SymbolInfo*> currentVars;
 vector<SymbolInfo*> currentParams;
+vector<SymbolInfo*> currentArgs;
 bool scopeStarted = false;
 bool paramAdd = false;
 
@@ -547,7 +548,14 @@ statement : var_declaration {
             $$->setEndLine($1->getEndLine());
             $$->addTreeChild($1);
         }
-	  | compound_statement
+	  | compound_statement {
+            $$ = new SymbolInfo("statement : compound_statement ", "");
+            fprintf(logout, "%s\n", $$->getName().c_str());
+            $$->setRule(true);
+            $$->setStartLine($1->getStartLine());
+            $$->setEndLine($1->getEndLine());
+            $$->addTreeChild($1);
+        }
 	  | FOR LPAREN expression_statement expression_statement expression RPAREN statement
 	  | IF LPAREN expression RPAREN statement
 	  | IF LPAREN expression RPAREN statement ELSE statement
@@ -591,6 +599,16 @@ variable : ID {
         $$->setStartLine($1->getStartLine());
         $$->setEndLine($1->getEndLine());
         $$->addTreeChild($1);
+
+        int table_no, pos, idx;
+        SymbolInfo* symInfo = st.look_up($1->getName(), idx, pos, table_no);
+        if (symInfo == nullptr) {
+            fprintf(errorout,"Line# %d: Undeclared variable \'%s\'\n",$1->getStartLine(),$1->getName().c_str());
+            error_count++;
+        }
+        else {
+            $$->setDataType(symInfo->getDataType());
+        }
     }	
 	 | ID LSQUARE expression RSQUARE {
         $$ = new SymbolInfo("variable : ID LSQUARE expression RSQUARE ", "");
@@ -602,6 +620,29 @@ variable : ID {
         $$->addTreeChild($2);
         $$->addTreeChild($3);
         $$->addTreeChild($4);
+
+        int table_no, pos, idx;
+        SymbolInfo* symInfo = st.look_up($1->getName(), idx, pos, table_no);
+        if (symInfo == nullptr) {
+            fprintf(errorout,"Line# %d: Undeclared variable \'%s\'\n",$1->getStartLine(),$1->getName().c_str());
+            error_count++;
+        }
+        else {
+            if (!symInfo->getArray()) {
+                fprintf(errorout,"Line# %d: \'%s\' is not an array\n",$1->getStartLine(),$1->getName().c_str());
+                error_count++;
+            }
+            else {
+                // ID is an array
+                if ($3->getDataType() != "INT") {
+                    fprintf(errorout,"Line# %d: Array subscript is not an integer\n",$1->getStartLine(),$1->getName().c_str());
+                    error_count++;
+                }
+                else {
+                    $$->setDataType(symInfo->getFuncReturnType());
+                }
+            }
+        }
      }
 	 ;
 	 
@@ -612,6 +653,12 @@ expression : logic_expression	{
             $$->setStartLine($1->getStartLine());
             $$->setEndLine($1->getEndLine());
             $$->addTreeChild($1);
+
+            $$->setDataType($1->getDataType());
+            if ($$->getDataType() == "VOID") {
+                fprintf(errorout,"Line# %d: Void cannot be used in expression\n",$1->getStartLine());
+                error_count++;
+            }
         }
 	   | variable ASSIGNOP logic_expression {
             $$ = new SymbolInfo("expression : variable ASSIGNOP logic_expression ", "");
@@ -622,6 +669,12 @@ expression : logic_expression	{
             $$->addTreeChild($1);
             $$->addTreeChild($2);
             $$->addTreeChild($3);
+
+            $$->setDataType($1->getDataType());
+            if ($3->getDataType() == "VOID") {
+                fprintf(errorout,"Line# %d: Void cannot be used in expression\n",$3->getStartLine());
+                error_count++;
+            }
         }	
 	   ;
 			
@@ -632,6 +685,8 @@ logic_expression : rel_expression {
             $$->setStartLine($1->getStartLine());
             $$->setEndLine($1->getEndLine());
             $$->addTreeChild($1);
+
+            $$->setDataType($1->getDataType());
         }	
 		 | rel_expression LOGICOP rel_expression {
             $$ = new SymbolInfo("logic_expression : rel_expression LOGICOP rel_expression ", "");
@@ -642,6 +697,16 @@ logic_expression : rel_expression {
             $$->addTreeChild($1);
             $$->addTreeChild($2);
             $$->addTreeChild($3);
+
+            if ($1->getDataType() == "VOID") {
+                fprintf(errorout,"Line# %d: Void cannot be used in expression\n",$1->getStartLine());
+                error_count++;
+            }
+            else if ($3->getDataType() == "VOID") {
+                fprintf(errorout,"Line# %d: Void cannot be used in expression\n",$3->getStartLine());
+                error_count++;
+            }
+            $$->setDataType("INT");
          }	
 		 ;
 			
@@ -652,6 +717,8 @@ rel_expression	: simple_expression {
             $$->setStartLine($1->getStartLine());
             $$->setEndLine($1->getEndLine());
             $$->addTreeChild($1);
+
+            $$->setDataType($1->getDataType());
         }
 		| simple_expression RELOP simple_expression	{
             $$ = new SymbolInfo("rel_expression : simple_expression RELOP simple_expression ", "");
@@ -662,6 +729,17 @@ rel_expression	: simple_expression {
             $$->addTreeChild($1);
             $$->addTreeChild($2);
             $$->addTreeChild($3);
+
+            if ($1->getDataType() == "VOID") {
+                fprintf(errorout,"Line# %d: Void cannot be used in expression\n",$1->getStartLine());
+                error_count++;
+            }
+            else if ($3->getDataType() == "VOID") {
+                fprintf(errorout,"Line# %d: Void cannot be used in expression\n",$3->getStartLine());
+                error_count++;
+            }
+            
+            $$->setDataType("INT");
         }
 		;
 				
@@ -672,6 +750,8 @@ simple_expression : term {
             $$->setStartLine($1->getStartLine());
             $$->setEndLine($1->getEndLine());
             $$->addTreeChild($1);
+
+            $$->setDataType($1->getDataType());
         }
 		  | simple_expression ADDOP term {
             $$ = new SymbolInfo("simple_expression : simple_expression ADDOP term ", "");
@@ -682,6 +762,16 @@ simple_expression : term {
             $$->addTreeChild($1);
             $$->addTreeChild($2);
             $$->addTreeChild($3);
+
+            if ($1->getDataType() == "VOID") {
+                fprintf(errorout,"Line# %d: Void cannot be used in expression\n",$1->getStartLine());
+                error_count++;
+            }
+            else if ($3->getDataType() == "VOID") {
+                fprintf(errorout,"Line# %d: Void cannot be used in expression\n",$3->getStartLine());
+                error_count++;
+            }
+            $$->setDataType($1->getDataType());
           }
 		  ;
 					
@@ -692,6 +782,8 @@ term :	unary_expression {
             $$->setStartLine($1->getStartLine());
             $$->setEndLine($1->getEndLine());
             $$->addTreeChild($1);
+
+            $$->setDataType($1->getDataType());
         }
      |  term MULOP unary_expression {
             $$ = new SymbolInfo("term : term MULOP unary_expression ", "");
@@ -702,6 +794,16 @@ term :	unary_expression {
             $$->addTreeChild($1);
             $$->addTreeChild($2);
             $$->addTreeChild($3);
+
+            if ($1->getDataType() == "VOID") {
+                fprintf(errorout,"Line# %d: Void cannot be used in expression\n",$1->getStartLine());
+                error_count++;
+            }
+            else if ($3->getDataType() == "VOID") {
+                fprintf(errorout,"Line# %d: Void cannot be used in expression\n",$3->getStartLine());
+                error_count++;
+            }
+            $$->setDataType($1->getDataType());
         }
      ;
 
@@ -713,6 +815,13 @@ unary_expression : ADDOP unary_expression {
             $$->setEndLine($2->getEndLine());
             $$->addTreeChild($1);
             $$->addTreeChild($2);
+
+            if ($2->getDataType() == "VOID") {
+                fprintf(errorout,"Line# %d: Void cannot be used in expression\n",$2->getStartLine());
+                error_count++;
+            }
+
+            $$->setDataType($2->getDataType());
         }
 		 | NOT unary_expression {
             $$ = new SymbolInfo("unary_expression : NOT unary_expression ", "");
@@ -722,6 +831,13 @@ unary_expression : ADDOP unary_expression {
             $$->setEndLine($2->getEndLine());
             $$->addTreeChild($1);
             $$->addTreeChild($2);
+
+            if ($2->getDataType() == "VOID") {
+                fprintf(errorout,"Line# %d: Void cannot be used in expression\n",$2->getStartLine());
+                error_count++;
+            }
+
+            $$->setDataType($2->getDataType());
          }
 		 | factor {
             $$ = new SymbolInfo("unary_expression : factor ", "");
@@ -730,6 +846,8 @@ unary_expression : ADDOP unary_expression {
             $$->setStartLine($1->getStartLine());
             $$->setEndLine($1->getEndLine());
             $$->addTreeChild($1);
+
+            $$->setDataType($1->getDataType());
          }
 		 ;
 	
@@ -740,6 +858,8 @@ factor	: variable {
         $$->setStartLine($1->getStartLine());
         $$->setEndLine($1->getEndLine());
         $$->addTreeChild($1);
+
+        $$->setDataType($1->getDataType());
     }
 	| ID LPAREN argument_list RPAREN {
         $$ = new SymbolInfo("factor : ID LPAREN argument_list RPAREN ", "");
@@ -751,6 +871,40 @@ factor	: variable {
         $$->addTreeChild($2);
         $$->addTreeChild($3);
         $$->addTreeChild($4);
+
+        int table_no, idx, pos;
+        SymbolInfo* symInfo = st.look_up($1->getName(), idx, pos, table_no);
+        if (symInfo == nullptr) {
+            // not found
+            fprintf(errorout,"Line# %d: Undeclared function \'%s\'\n",$1->getStartLine(),$1->getName().c_str());
+            error_count++;
+        }
+        else {
+            // check if argument count match
+            int argCount = symInfo->getFuncParamCount();
+            if (argCount > int(currentArgs.size())) {
+                fprintf(errorout,"Line# %d: Too few arguments to function \'%s\'\n",$1->getStartLine(),$1->getName().c_str());
+                error_count++;
+            }
+            else if (argCount < int(currentArgs.size())) {
+                fprintf(errorout,"Line# %d: Too many arguments to function \'%s\'\n",$1->getStartLine(),$1->getName().c_str());
+                error_count++;
+            }
+            else {
+                // argument count matches
+                // check if the types are compatible
+                for (int i = 0; i < int(currentArgs.size()); i++) {
+                    if (!symInfo->matchFuncParamType(i, currentArgs[i]->getDataType())) {
+                        fprintf(errorout,"Line# %d: Type mismatch for argument %d of \'%s\'\n",$1->getStartLine(), i+1, $1->getName().c_str());
+                        error_count++;
+                    }
+                }
+                currentArgs.clear();
+            }
+            $$->setDataType(symInfo->getFuncReturnType());
+        }
+        
+        
     }
 	| LPAREN expression RPAREN {
         $$ = new SymbolInfo("factor : LPAREN expression RPAREN ", "");
@@ -761,6 +915,13 @@ factor	: variable {
         $$->addTreeChild($1);
         $$->addTreeChild($2);
         $$->addTreeChild($3);
+
+        if ($2->getDataType() == "VOID") {
+            fprintf(errorout,"Line# %d: Void cannot be used in expression\n",$2->getStartLine());
+            error_count++;
+        }
+
+        $$->setDataType($2->getDataType());
     }
 	| CONST_INT {
         $$ = new SymbolInfo("factor : CONST_INT ", "");
@@ -769,6 +930,8 @@ factor	: variable {
         $$->setStartLine($1->getStartLine());
         $$->setEndLine($1->getEndLine());
         $$->addTreeChild($1);
+
+        $$->setDataType("INT");
     }
 	| CONST_FLOAT {
         $$ = new SymbolInfo("factor : CONST_FLOAT ", "");
@@ -777,6 +940,8 @@ factor	: variable {
         $$->setStartLine($1->getStartLine());
         $$->setEndLine($1->getEndLine());
         $$->addTreeChild($1);
+
+        $$->setDataType("FLOAT");
     }
 	| variable INCOP {
         $$ = new SymbolInfo("factor : variable INCOP ", "");
@@ -786,6 +951,8 @@ factor	: variable {
         $$->setEndLine($2->getEndLine());
         $$->addTreeChild($1);
         $$->addTreeChild($2);
+
+        $$->setDataType($1->getDataType());
     }
 	| variable DECOP {
         $$ = new SymbolInfo("factor : variable DECOP ", "");
@@ -795,6 +962,8 @@ factor	: variable {
         $$->setEndLine($2->getEndLine());
         $$->addTreeChild($1);
         $$->addTreeChild($2);
+
+        $$->setDataType($1->getDataType());
     }
 	;
 	
@@ -824,6 +993,8 @@ arguments : arguments COMMA logic_expression {
                 $$->addTreeChild($1);
                 $$->addTreeChild($2);
                 $$->addTreeChild($3);
+
+                currentArgs.push_back($3);
             }
 	      | logic_expression {
                 $$ = new SymbolInfo("arguments : logic_expression ", "");
@@ -832,6 +1003,8 @@ arguments : arguments COMMA logic_expression {
                 $$->setStartLine($1->getStartLine());
                 $$->setEndLine($1->getEndLine());
                 $$->addTreeChild($1);
+
+                currentArgs.push_back($1);
             }
 	      ;
  

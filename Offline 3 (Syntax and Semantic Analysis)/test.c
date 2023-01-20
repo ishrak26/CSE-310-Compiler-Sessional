@@ -38,7 +38,35 @@ void foo4(int a){
 }
 
 int main(){
-	int a,b,c[4],dd,ee;
+	int a,b,c[4],dd,ee;	
 	void e;
 	float a,c[7];
+	
+	func(2.5,3.5);
+	
+	
+	a = correct_foo(a,c);
+	b = correct_foo(a);
+	dd = correct_foo(a, b, a);
+	
+	k = 5+2;
+	b[5] = 7;
+	c[2.5] = 8;
+	c[0] = 2 + 5 * foo4(7);
+	c[1] = 5;
+	foo4(c[1]);
+	c[2] = foo4(c[1]);
+	
+	
+	
+	
+	dd = foo5(a);
+	
+	
+	
+	
+	
+	return 0;
+	
+	
 }
