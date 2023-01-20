@@ -140,6 +140,9 @@ func_declaration : type_specifier ID LPAREN parameter_list RPAREN SEMICOLON {
 
                 $2->setFunction(true);
                 $2->setFuncReturnType($1->getType());
+                
+                st.exit_scope();
+                
                 int table_no, idx, pos;
                 bool ret = st.insert($2, idx, pos, table_no);
                 if (!ret) {
@@ -200,9 +203,17 @@ func_definition : type_specifier ID LPAREN parameter_list RPAREN compound_statem
                 if (!ret) {
                     // found 
                     SymbolInfo *symInfo = st.look_up($2->getName(), idx, pos, table_no);
-                    if (symInfo != nullptr && $2->getFuncReturnType() != symInfo->getFuncReturnType()) {
-                        fprintf(errorout,"Line# %d: Conflicting types for \'%s\'\n",$2->getStartLine(),$2->getName().c_str());
-                        error_count++;
+                    if (symInfo != nullptr) {
+                        if (symInfo->getFunction()) {
+                            if ($2->getFuncReturnType() != symInfo->getFuncReturnType()) {
+                                fprintf(errorout,"Line# %d: Conflicting types for \'%s\'\n",$2->getStartLine(),$2->getName().c_str());
+                                error_count++;
+                            }
+                        }
+                        else {
+                            fprintf(errorout,"Line# %d: \'%s\' redeclared as different kind of symbol\n",$2->getStartLine(),$2->getName().c_str());
+                            error_count++;
+                        }
                     }
                     // fprintf(logout, "\t%s already exists in the current ScopeTable\n", $2->getName().c_str());
                 }
@@ -236,9 +247,17 @@ func_definition : type_specifier ID LPAREN parameter_list RPAREN compound_statem
                 if (!ret) {
                     // found 
                     SymbolInfo *symInfo = st.look_up($2->getName(), idx, pos, table_no);
-                    if (symInfo != nullptr && $2->getFuncReturnType() != symInfo->getFuncReturnType()) {
-                        fprintf(errorout,"Line# %d: Conflicting types for \'%s\'\n",$2->getStartLine(),$2->getName().c_str());
-                        error_count++;
+                    if (symInfo != nullptr) {
+                        if (symInfo->getFunction()) {
+                            if ($2->getFuncReturnType() != symInfo->getFuncReturnType()) {
+                                fprintf(errorout,"Line# %d: Conflicting types for \'%s\'\n",$2->getStartLine(),$2->getName().c_str());
+                                error_count++;
+                            }
+                        }
+                        else {
+                            fprintf(errorout,"Line# %d: \'%s\' redeclared as different kind of symbol\n",$2->getStartLine(),$2->getName().c_str());
+                            error_count++;
+                        }
                     }
                     // fprintf(logout, "\t%s already exists in the current ScopeTable\n", $2->getName().c_str());
                 }
