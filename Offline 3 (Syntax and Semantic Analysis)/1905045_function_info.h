@@ -30,6 +30,8 @@ public:
 
     bool matchParamType(int idx, string type);
 
+    bool checkParam(string name);
+
     void setReturnType(string returnType) {
         this->returnType = returnType;
     }

@@ -115,6 +115,13 @@ public:
         }
     }
 
+    bool checkFuncParam(string name) {
+        if (isFunction) {
+            return funcInfo->checkParam(name);
+        }
+        return false;
+    }
+
     void setRule(bool isRule) {
         this->isRule = isRule;
     }

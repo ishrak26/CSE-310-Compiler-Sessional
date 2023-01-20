@@ -15,6 +15,7 @@ extern FILE *yyin;
 FILE *fp;
 FILE *logout;
 FILE *parseout;
+FILE *errorout;
 
 int line_count = 1;
 int error_count = 0;
@@ -24,6 +25,15 @@ bool FuncInfo::matchParamType(int idx, string type) {
     return (params[idx]->getType() == type);
 }
 
+bool FuncInfo::checkParam(string name) {
+    for (int i = 0; i < paramSize(); i++) {
+        if (name == params[i]->getName()) {
+            return true;
+        }
+    }
+    return false;
+}
+
 int SymbolTable::table_no = 0;
 const int NUM_BUCKETS = 11;
 SymbolTable st(NUM_BUCKETS);
@@ -31,6 +41,7 @@ SymbolTable st(NUM_BUCKETS);
 vector<SymbolInfo*> currentVars;
 vector<SymbolInfo*> currentParams;
 bool scopeStarted = false;
+bool paramAdd = false;
 
 void yyerror(char *s)
 {
@@ -137,6 +148,11 @@ func_declaration : type_specifier ID LPAREN parameter_list RPAREN SEMICOLON {
                 }
 
                 for (int i = 0; i < currentParams.size(); i++) {
+                    if ($2->checkFuncParam(currentParams[i]->getName())) {
+                        fprintf(errorout,"Line# %d: Redefinition of parameter \'%s\'\n",currentParams[i]->getStartLine(),currentParams[i]->getName().c_str());
+                        error_count++;
+                        break;
+                    }
                     $2->addFuncParam(currentParams[i]);
                 }
                 currentParams.clear();
@@ -181,12 +197,22 @@ func_definition : type_specifier ID LPAREN parameter_list RPAREN compound_statem
                 $2->setFuncReturnType($1->getType());
                 int table_no, idx, pos;
                 bool ret = st.insert($2, idx, pos, table_no);
-                // if (!ret) {
-                //     // found 
-                //     fprintf(logout, "\t%s already exists in the current ScopeTable\n", $2->getName().c_str());
-                // }
+                if (!ret) {
+                    // found 
+                    SymbolInfo *symInfo = st.look_up($2->getName(), idx, pos, table_no);
+                    if (symInfo != nullptr && $2->getFuncReturnType() != symInfo->getFuncReturnType()) {
+                        fprintf(errorout,"Line# %d: Conflicting types for \'%s\'\n",$2->getStartLine(),$2->getName().c_str());
+                        error_count++;
+                    }
+                    // fprintf(logout, "\t%s already exists in the current ScopeTable\n", $2->getName().c_str());
+                }
 
                 for (int i = 0;  i < currentParams.size(); i++) {
+                    if ($2->checkFuncParam(currentParams[i]->getName())) {
+                        fprintf(errorout,"Line# %d: Redefinition of parameter \'%s\'\n",currentParams[i]->getStartLine(),currentParams[i]->getName().c_str());
+                        error_count++;
+                        break;
+                    }
                     $2->addFuncParam(currentParams[i]);
                 }
                 currentParams.clear();
@@ -207,10 +233,15 @@ func_definition : type_specifier ID LPAREN parameter_list RPAREN compound_statem
                 $2->setFuncReturnType($1->getType());
                 int table_no, idx, pos;
                 bool ret = st.insert($2, idx, pos, table_no);
-                // if (!ret) {
-                //     // found 
-                //     fprintf(logout, "\t%s already exists in the current ScopeTable\n", $2->getName().c_str());
-                // }
+                if (!ret) {
+                    // found 
+                    SymbolInfo *symInfo = st.look_up($2->getName(), idx, pos, table_no);
+                    if (symInfo != nullptr && $2->getFuncReturnType() != symInfo->getFuncReturnType()) {
+                        fprintf(errorout,"Line# %d: Conflicting types for \'%s\'\n",$2->getStartLine(),$2->getName().c_str());
+                        error_count++;
+                    }
+                    // fprintf(logout, "\t%s already exists in the current ScopeTable\n", $2->getName().c_str());
+                }
         }
  		;				
 
@@ -227,11 +258,14 @@ parameter_list  : parameter_list COMMA type_specifier ID {
             $$->addTreeChild($4);
             
             $4->setDataType($3->getType());
-            int table_no, idx, pos;
-            bool ret = st.insert(new SymbolInfo($4), idx, pos, table_no);
-            if (!ret) {
-                // found 
-                fprintf(logout, "\t%s already exists in the current ScopeTable\n", $4->getName().c_str());
+            if (paramAdd) {
+                int table_no, idx, pos;
+                bool ret = st.insert(new SymbolInfo($4), idx, pos, table_no);
+                if (!ret) {
+                    // found 
+                    paramAdd = false;
+                    // fprintf(logout, "\t%s already exists in the current ScopeTable\n", $4->getName().c_str());
+                }
             }
             currentParams.push_back($4);
         }
@@ -246,17 +280,21 @@ parameter_list  : parameter_list COMMA type_specifier ID {
             $$->addTreeChild($3);
             
             $3->setDataType($3->getType());
-            int table_no, idx, pos;
-            bool ret = st.insert(new SymbolInfo($3), idx, pos, table_no);
-            if (!ret) {
-                // found 
-                fprintf(logout, "\t%s already exists in the current ScopeTable\n", $3->getName().c_str());
+            if (paramAdd) {
+                int table_no, idx, pos;
+                bool ret = st.insert(new SymbolInfo($3), idx, pos, table_no);
+                if (!ret) {
+                    // found 
+                    paramAdd = false;
+                    // fprintf(logout, "\t%s already exists in the current ScopeTable\n", $3->getName().c_str());
+                }
             }
             currentParams.push_back($3);
         }
  		| type_specifier ID {
             st.enter_scope();
             scopeStarted = true;
+            paramAdd = true;
             $$ = new SymbolInfo("parameter_list : type_specifier ID ", "");
             fprintf(logout, "%s\n", $$->getName().c_str());
             $$->setRule(true);
@@ -267,17 +305,22 @@ parameter_list  : parameter_list COMMA type_specifier ID {
             
             $2->setDataType($1->getType());
 
-            int table_no, idx, pos;
-            bool ret = st.insert(new SymbolInfo($2), idx, pos, table_no);
-            if (!ret) {
-                // found 
-                fprintf(logout, "\t%s already exists in the current ScopeTable\n", $2->getName().c_str());
+            if (paramAdd) {
+                int table_no, idx, pos;
+                bool ret = st.insert(new SymbolInfo($2), idx, pos, table_no);
+                if (!ret) {
+                    // found 
+                    paramAdd = false;
+                    // fprintf(logout, "\t%s already exists in the current ScopeTable\n", $2->getName().c_str());
+                }
             }
+            
             currentParams.push_back($2);
         }
 		| type_specifier {
             st.enter_scope();
             scopeStarted = true;
+            paramAdd = true;
             $$ = new SymbolInfo("parameter_list : type_specifier ", "");
             fprintf(logout, "%s\n", $$->getName().c_str());
             $$->setRule(true);
@@ -287,11 +330,14 @@ parameter_list  : parameter_list COMMA type_specifier ID {
             
             $1->setDataType($1->getType());
             
-            int table_no, idx, pos;
-            bool ret = st.insert(new SymbolInfo($1), idx, pos, table_no);
-            if (!ret) {
-                // found 
-                fprintf(logout, "\t%s already exists in the current ScopeTable\n", $1->getName().c_str());
+            if (paramAdd) {
+                int table_no, idx, pos;
+                bool ret = st.insert(new SymbolInfo($1), idx, pos, table_no);
+                if (!ret) {
+                    // found 
+                    paramAdd = false;
+                    // fprintf(logout, "\t%s already exists in the current ScopeTable\n", $1->getName().c_str());
+                }
             }
             currentParams.push_back($1);
         }
@@ -310,6 +356,7 @@ compound_statement : LCURL statements RCURL {
                 st.print_all_scope_table(logout);
                 st.exit_scope();
                 scopeStarted = false;
+                paramAdd = false;
             }
  		    | LCURL RCURL {
                 $$ = new SymbolInfo("compound_statement : LCURL RCURL ", "");
@@ -322,6 +369,7 @@ compound_statement : LCURL statements RCURL {
                 st.print_all_scope_table(logout);
                 st.exit_scope();
                 scopeStarted = false;
+                paramAdd = false;
             }
  		    ;
  		    
@@ -763,12 +811,14 @@ int main(int argc,char *argv[])
 
 	parseout= fopen(argv[2],"w");
 	fclose(parseout);
-	logout= fopen(argv[3],"w");
+    errorout= fopen(argv[3],"w");
+	fclose(errorout);
+	logout= fopen(argv[4],"w");
 	fclose(logout);
 	
 	parseout= fopen(argv[2],"a");
-	logout= fopen(argv[3],"a");
-	
+    errorout= fopen(argv[3],"a");
+	logout= fopen(argv[4],"a");
 
 	yyin=fp;
 	yyparse();
@@ -777,6 +827,7 @@ int main(int argc,char *argv[])
     fprintf(logout, "Total Errors: %d\n", error_count);
 
 	fclose(parseout);
+    fclose(errorout);
 	fclose(logout);
     fclose(fp);
 	

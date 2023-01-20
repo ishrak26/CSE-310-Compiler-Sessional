@@ -11,4 +11,4 @@ g++ -w -c -o l.o lex.yy.c
 echo 'Generated the scanner object file'
 g++ y.o l.o -lfl -o test
 echo 'All ready, running'
-./test test.c test_parse.txt test_log.txt 
+./test test.c test_parse.txt test_error.txt test_log.txt 
