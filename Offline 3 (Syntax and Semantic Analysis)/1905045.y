@@ -61,9 +61,10 @@ void yyerror(char *s)
 %type<symInfo> start program unit var_declaration func_declaration func_definition type_specifier parameter_list compound_statement statements declaration_list statement expression_statement expression logic_expression variable rel_expression simple_expression term unary_expression factor argument_list arguments 
 
 /* %left 
-%right
+%right */
 
-%nonassoc  */
+%nonassoc THEN
+%nonassoc ELSE
 
 
 %%
@@ -556,10 +557,58 @@ statement : var_declaration {
             $$->setEndLine($1->getEndLine());
             $$->addTreeChild($1);
         }
-	  | FOR LPAREN expression_statement expression_statement expression RPAREN statement
-	  | IF LPAREN expression RPAREN statement
-	  | IF LPAREN expression RPAREN statement ELSE statement
-	  | WHILE LPAREN expression RPAREN statement
+	  | FOR LPAREN expression_statement expression_statement expression RPAREN statement {
+            $$ = new SymbolInfo("statement : FOR LPAREN expression_statement expression_statement expression RPAREN statement ", "");
+            fprintf(logout, "%s\n", $$->getName().c_str());
+            $$->setRule(true);
+            $$->setStartLine($1->getStartLine());
+            $$->setEndLine($7->getEndLine());
+            $$->addTreeChild($1);
+            $$->addTreeChild($2);
+            $$->addTreeChild($3);
+            $$->addTreeChild($4);
+            $$->addTreeChild($5);
+            $$->addTreeChild($6);
+            $$->addTreeChild($7);
+        }
+	  | IF LPAREN expression RPAREN statement %prec THEN {
+            $$ = new SymbolInfo("statement : IF LPAREN expression RPAREN statement ", "");
+            fprintf(logout, "%s\n", $$->getName().c_str());
+            $$->setRule(true);
+            $$->setStartLine($1->getStartLine());
+            $$->setEndLine($5->getEndLine());
+            $$->addTreeChild($1);
+            $$->addTreeChild($2);
+            $$->addTreeChild($3);
+            $$->addTreeChild($4);
+            $$->addTreeChild($5);
+        }
+	  | IF LPAREN expression RPAREN statement ELSE statement {
+            $$ = new SymbolInfo("statement : IF LPAREN expression RPAREN statement ELSE statement ", "");
+            fprintf(logout, "%s\n", $$->getName().c_str());
+            $$->setRule(true);
+            $$->setStartLine($1->getStartLine());
+            $$->setEndLine($7->getEndLine());
+            $$->addTreeChild($1);
+            $$->addTreeChild($2);
+            $$->addTreeChild($3);
+            $$->addTreeChild($4);
+            $$->addTreeChild($5);
+            $$->addTreeChild($6);
+            $$->addTreeChild($7);
+        }
+	  | WHILE LPAREN expression RPAREN statement {
+            $$ = new SymbolInfo("statement : WHILE LPAREN expression RPAREN statement ", "");
+            fprintf(logout, "%s\n", $$->getName().c_str());
+            $$->setRule(true);
+            $$->setStartLine($1->getStartLine());
+            $$->setEndLine($5->getEndLine());
+            $$->addTreeChild($1);
+            $$->addTreeChild($2);
+            $$->addTreeChild($3);
+            $$->addTreeChild($4);
+            $$->addTreeChild($5);
+        }
 	  | PRINTLN LPAREN ID RPAREN SEMICOLON {
             // int table_no, pos, idx;
             // SymbolInfo* symInfo = st.look_up($3->getName(), idx, pos, table_no);
