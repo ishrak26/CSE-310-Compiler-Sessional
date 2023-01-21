@@ -43,6 +43,8 @@ vector<SymbolInfo*> currentParams;
 vector<SymbolInfo*> currentArgs;
 bool scopeStarted = false;
 bool paramAdd = false;
+bool currFuncReturn; // true if sth is returned i.e. non-void
+int returnStartLine;
 
 void yyerror(char *s)
 {
@@ -230,6 +232,12 @@ func_definition : type_specifier ID LPAREN parameter_list RPAREN compound_statem
                     $2->addFuncParam(currentParams[i]);
                 }
                 currentParams.clear();
+
+                if (currFuncReturn && $1->getType() == "VOID") {
+                    fprintf(errorout,"Line# %d: Return from a void function\n",returnStartLine);
+                    error_count++;
+                } 
+                currFuncReturn = false;
         }
 		| type_specifier ID LPAREN RPAREN compound_statement {
                 $$ = new SymbolInfo("func_definition : type_specifier ID LPAREN RPAREN compound_statement ", "");
@@ -264,6 +272,11 @@ func_definition : type_specifier ID LPAREN parameter_list RPAREN compound_statem
                     }
                     // fprintf(logout, "\t%s already exists in the current ScopeTable\n", $2->getName().c_str());
                 }
+                if (currFuncReturn && $1->getType() == "VOID") {
+                    fprintf(errorout,"Line# %d: Return from a void function\n",returnStartLine);
+                    error_count++;
+                } 
+                currFuncReturn = false;
         }
  		;				
 
@@ -633,6 +646,9 @@ statement : var_declaration {
                 fprintf(errorout,"Line# %d: Void cannot be used in expression \n",$2->getStartLine());
                 error_count++;
             }
+
+            currFuncReturn = true;
+            returnStartLine = $1->getStartLine();
         }
 	  ;
 	  
