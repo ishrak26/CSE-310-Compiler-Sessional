@@ -56,16 +56,16 @@ int main(){
 	c[1] = 5;
 	foo4(c[1]);
 	c[2] = foo4(c[1]);
-	
-	
-	
+	c[3] = 2.7;
+	b = 5%0;
+	b = 2%3.5;
 	
 	dd = foo5(a);
 	
 	
 	
 	
-	
+	printf(h);
 	return 0;
 	
 	

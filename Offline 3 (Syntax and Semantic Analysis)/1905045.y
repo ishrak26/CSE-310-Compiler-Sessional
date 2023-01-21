@@ -560,7 +560,16 @@ statement : var_declaration {
 	  | IF LPAREN expression RPAREN statement
 	  | IF LPAREN expression RPAREN statement ELSE statement
 	  | WHILE LPAREN expression RPAREN statement
-	  | PRINTLN LPAREN ID RPAREN SEMICOLON
+	  | PRINTLN LPAREN ID RPAREN SEMICOLON {
+            // int table_no, pos, idx;
+            // SymbolInfo* symInfo = st.look_up($3->getName(), idx, pos, table_no);
+            // if (symInfo == nullptr) {
+            //     fprintf(errorout,"Line# %d: Undeclared variable \'%s\'\n",$3->getStartLine(),$3->getName().c_str());
+            //     error_count++;
+            // }
+            // fprintf(errorout,"Line# %d: Undeclared function \'printf\'\n",$1->getStartLine());
+            // error_count++;
+        }
 	  | RETURN expression SEMICOLON {
             $$ = new SymbolInfo("statement : RETURN expression SEMICOLON ", "");
             fprintf(logout, "%s\n", $$->getName().c_str());
@@ -678,6 +687,10 @@ expression : logic_expression	{
                 fprintf(errorout,"Line# %d: Void cannot be used in expression\n",$3->getStartLine());
                 error_count++;
             }
+            else if ($1->getDataType() == "INT" && $3->getDataType() == "FLOAT") {
+                fprintf(errorout,"Line# %d: Warning: possible loss of data in assignment of FLOAT to INT\n",$1->getStartLine());
+                error_count++;
+            }
         }	
 	   ;
 			
@@ -787,6 +800,7 @@ term :	unary_expression {
             $$->addTreeChild($1);
 
             $$->setDataType($1->getDataType());
+            $$->setConstVal($1->getConstVal());
         }
      |  term MULOP unary_expression {
             $$ = new SymbolInfo("term : term MULOP unary_expression ", "");
@@ -806,7 +820,16 @@ term :	unary_expression {
                 fprintf(errorout,"Line# %d: Void cannot be used in expression\n",$3->getStartLine());
                 error_count++;
             }
+            else if ($1->getDataType() != "INT" || $3->getDataType() != "INT") {
+                fprintf(errorout,"Line# %d: Operands of modulus must be integers\n",$3->getStartLine());
+                error_count++;
+            }
+            else if (($2->getName() == "/" || $2->getName() == "%") && $3->getConstVal() == "0") {
+                fprintf(errorout,"Line# %d: Warning: division by zero\n",$1->getStartLine());
+                error_count++;
+            }
             $$->setDataType($1->getDataType());
+
         }
      ;
 
@@ -851,6 +874,7 @@ unary_expression : ADDOP unary_expression {
             $$->addTreeChild($1);
 
             $$->setDataType($1->getDataType());
+            $$->setConstVal($1->getConstVal());
          }
 		 ;
 	
@@ -937,6 +961,7 @@ factor	: variable {
         $$->addTreeChild($1);
 
         $$->setDataType("INT");
+        $$->setConstVal($1->getName());
     }
 	| CONST_FLOAT {
         $$ = new SymbolInfo("factor : CONST_FLOAT ", "");
@@ -947,6 +972,7 @@ factor	: variable {
         $$->addTreeChild($1);
 
         $$->setDataType("FLOAT");
+        $$->setConstVal($1->getName());
     }
 	| variable INCOP {
         $$ = new SymbolInfo("factor : variable INCOP ", "");

@@ -257,12 +257,12 @@ NEWLINE \n
 [_A-Za-z][_0-9A-Za-z]* {
 			// cerr << "written in token\n";
 			fprintf(logout,"Line# %d: Token <ID> Lexeme %s found\n",line_count,yytext);
-			if (string(yytext) == "printf") {
-				yylval.symInfo = new SymbolInfo(string(yytext), "PRINTLN");
-				yylval.symInfo->setStartLine(line_count);
-				yylval.symInfo->setEndLine(line_count);
-				return PRINTLN;
-			}
+			// if (string(yytext) == "printf") {
+			// 	yylval.symInfo = new SymbolInfo(string(yytext), "PRINTLN");
+			// 	yylval.symInfo->setStartLine(line_count);
+			// 	yylval.symInfo->setEndLine(line_count);
+			// 	return PRINTLN;
+			// }
             yylval.symInfo = new SymbolInfo(string(yytext), "ID");
 			yylval.symInfo->setStartLine(line_count);
 			yylval.symInfo->setEndLine(line_count);

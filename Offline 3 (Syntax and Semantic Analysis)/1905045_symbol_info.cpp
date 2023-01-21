@@ -17,6 +17,7 @@ class SymbolInfo {
     int startLine;
     int endLine;
     vector<SymbolInfo*> treeChildren;
+    string constVal;
 
     void init() {
         setNextSymbol(nullptr);
@@ -195,4 +196,13 @@ public:
     int getArraySize() const {
         return arraySize;
     }
+
+    void setConstVal(string val) {
+        constVal = val;
+    }
+
+    string getConstVal() const {
+        return constVal;
+    }
+    
 };
