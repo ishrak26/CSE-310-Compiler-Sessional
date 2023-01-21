@@ -570,6 +570,11 @@ statement : var_declaration {
             $$->addTreeChild($1);
             $$->addTreeChild($2);
             $$->addTreeChild($3);
+
+            if ($2->getDataType() == "VOID") {
+                fprintf(errorout,"Line# %d: Void cannot be used in expression\n",$2->getStartLine());
+                error_count++;
+            }
         }
 	  ;
 	  
@@ -638,10 +643,8 @@ variable : ID {
                     fprintf(errorout,"Line# %d: Array subscript is not an integer\n",$1->getStartLine(),$1->getName().c_str());
                     error_count++;
                 }
-                else {
-                    $$->setDataType(symInfo->getFuncReturnType());
-                }
             }
+            $$->setDataType(symInfo->getDataType());
         }
      }
 	 ;
@@ -655,10 +658,10 @@ expression : logic_expression	{
             $$->addTreeChild($1);
 
             $$->setDataType($1->getDataType());
-            if ($$->getDataType() == "VOID") {
-                fprintf(errorout,"Line# %d: Void cannot be used in expression\n",$1->getStartLine());
-                error_count++;
-            }
+            // if ($$->getDataType() == "VOID") {
+            //     fprintf(errorout,"Line# %d: Void cannot be used in expression\n",$1->getStartLine());
+            //     error_count++;
+            // }
         }
 	   | variable ASSIGNOP logic_expression {
             $$ = new SymbolInfo("expression : variable ASSIGNOP logic_expression ", "");
@@ -899,11 +902,12 @@ factor	: variable {
                         error_count++;
                     }
                 }
-                currentArgs.clear();
+                
             }
+            currentArgs.clear();
             $$->setDataType(symInfo->getFuncReturnType());
         }
-        
+
         
     }
 	| LPAREN expression RPAREN {
@@ -920,8 +924,9 @@ factor	: variable {
             fprintf(errorout,"Line# %d: Void cannot be used in expression\n",$2->getStartLine());
             error_count++;
         }
-
-        $$->setDataType($2->getDataType());
+        else {
+            $$->setDataType($2->getDataType());
+        }
     }
 	| CONST_INT {
         $$ = new SymbolInfo("factor : CONST_INT ", "");
