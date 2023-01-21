@@ -820,7 +820,7 @@ term :	unary_expression {
                 fprintf(errorout,"Line# %d: Void cannot be used in expression\n",$3->getStartLine());
                 error_count++;
             }
-            else if ($1->getDataType() != "INT" || $3->getDataType() != "INT") {
+            else if ($2->getName() == "%" && ($1->getDataType() != "INT" || $3->getDataType() != "INT")) {
                 fprintf(errorout,"Line# %d: Operands of modulus must be integers\n",$3->getStartLine());
                 error_count++;
             }
@@ -928,10 +928,10 @@ factor	: variable {
                 }
                 
             }
-            currentArgs.clear();
+            
             $$->setDataType(symInfo->getFuncReturnType());
         }
-
+        currentArgs.clear();
         
     }
 	| LPAREN expression RPAREN {
