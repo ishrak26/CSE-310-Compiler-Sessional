@@ -414,7 +414,7 @@ var_declaration : type_specifier declaration_list SEMICOLON {
                             SymbolInfo* symInfo = st.look_up(currentVars[i]->getName(), idx, pos, table_no);
                             if (symInfo != nullptr) {
                                 if (symInfo->getDataType() != currentVars[i]->getDataType()) {
-                                    fprintf(errorout,"Line# %d: Conflicting types for \'%s\'\n",currentVars[i]->getStartLine(),currentVars[i]->getName().c_str());
+                                    fprintf(errorout,"Line# %d: Conflicting types for\'%s\'\n",currentVars[i]->getStartLine(),currentVars[i]->getName().c_str());
                                     error_count++;
                                 }
                                 else {
@@ -630,7 +630,7 @@ statement : var_declaration {
             $$->addTreeChild($3);
 
             if ($2->getDataType() == "VOID") {
-                fprintf(errorout,"Line# %d: Void cannot be used in expression\n",$2->getStartLine());
+                fprintf(errorout,"Line# %d: Void cannot be used in expression \n",$2->getStartLine());
                 error_count++;
             }
         }
@@ -670,6 +670,10 @@ variable : ID {
             error_count++;
         }
         else {
+            if (symInfo->getArray()) {
+                fprintf(errorout,"Line# %d: No index associated with variable \'%s\'\n",$1->getStartLine(),$1->getName().c_str());
+                error_count++;
+            }
             $$->setDataType(symInfo->getDataType());
         }
     }	
@@ -717,7 +721,7 @@ expression : logic_expression	{
 
             $$->setDataType($1->getDataType());
             // if ($$->getDataType() == "VOID") {
-            //     fprintf(errorout,"Line# %d: Void cannot be used in expression\n",$1->getStartLine());
+            //     fprintf(errorout,"Line# %d: Void cannot be used in expression \n",$1->getStartLine());
             //     error_count++;
             // }
         }
@@ -733,7 +737,7 @@ expression : logic_expression	{
 
             $$->setDataType($1->getDataType());
             if ($3->getDataType() == "VOID") {
-                fprintf(errorout,"Line# %d: Void cannot be used in expression\n",$3->getStartLine());
+                fprintf(errorout,"Line# %d: Void cannot be used in expression \n",$3->getStartLine());
                 error_count++;
             }
             else if ($1->getDataType() == "INT" && $3->getDataType() == "FLOAT") {
@@ -764,11 +768,11 @@ logic_expression : rel_expression {
             $$->addTreeChild($3);
 
             if ($1->getDataType() == "VOID") {
-                fprintf(errorout,"Line# %d: Void cannot be used in expression\n",$1->getStartLine());
+                fprintf(errorout,"Line# %d: Void cannot be used in expression \n",$1->getStartLine());
                 error_count++;
             }
             else if ($3->getDataType() == "VOID") {
-                fprintf(errorout,"Line# %d: Void cannot be used in expression\n",$3->getStartLine());
+                fprintf(errorout,"Line# %d: Void cannot be used in expression \n",$3->getStartLine());
                 error_count++;
             }
             $$->setDataType("INT");
@@ -796,11 +800,11 @@ rel_expression	: simple_expression {
             $$->addTreeChild($3);
 
             if ($1->getDataType() == "VOID") {
-                fprintf(errorout,"Line# %d: Void cannot be used in expression\n",$1->getStartLine());
+                fprintf(errorout,"Line# %d: Void cannot be used in expression \n",$1->getStartLine());
                 error_count++;
             }
             else if ($3->getDataType() == "VOID") {
-                fprintf(errorout,"Line# %d: Void cannot be used in expression\n",$3->getStartLine());
+                fprintf(errorout,"Line# %d: Void cannot be used in expression \n",$3->getStartLine());
                 error_count++;
             }
             
@@ -829,11 +833,11 @@ simple_expression : term {
             $$->addTreeChild($3);
 
             if ($1->getDataType() == "VOID") {
-                fprintf(errorout,"Line# %d: Void cannot be used in expression\n",$1->getStartLine());
+                fprintf(errorout,"Line# %d: Void cannot be used in expression \n",$1->getStartLine());
                 error_count++;
             }
             else if ($3->getDataType() == "VOID") {
-                fprintf(errorout,"Line# %d: Void cannot be used in expression\n",$3->getStartLine());
+                fprintf(errorout,"Line# %d: Void cannot be used in expression \n",$3->getStartLine());
                 error_count++;
             }
             $$->setDataType($1->getDataType());
@@ -862,15 +866,15 @@ term :	unary_expression {
             $$->addTreeChild($3);
 
             if ($1->getDataType() == "VOID") {
-                fprintf(errorout,"Line# %d: Void cannot be used in expression\n",$1->getStartLine());
+                fprintf(errorout,"Line# %d: Void cannot be used in expression \n",$1->getStartLine());
                 error_count++;
             }
             else if ($3->getDataType() == "VOID") {
-                fprintf(errorout,"Line# %d: Void cannot be used in expression\n",$3->getStartLine());
+                fprintf(errorout,"Line# %d: Void cannot be used in expression \n",$3->getStartLine());
                 error_count++;
             }
             else if ($2->getName() == "%" && ($1->getDataType() != "INT" || $3->getDataType() != "INT")) {
-                fprintf(errorout,"Line# %d: Operands of modulus must be integers\n",$3->getStartLine());
+                fprintf(errorout,"Line# %d: Operands of modulus must be integers \n",$3->getStartLine());
                 error_count++;
             }
             else if (($2->getName() == "/" || $2->getName() == "%") && $3->getConstVal() == "0") {
@@ -892,7 +896,7 @@ unary_expression : ADDOP unary_expression {
             $$->addTreeChild($2);
 
             if ($2->getDataType() == "VOID") {
-                fprintf(errorout,"Line# %d: Void cannot be used in expression\n",$2->getStartLine());
+                fprintf(errorout,"Line# %d: Void cannot be used in expression \n",$2->getStartLine());
                 error_count++;
             }
 
@@ -908,7 +912,7 @@ unary_expression : ADDOP unary_expression {
             $$->addTreeChild($2);
 
             if ($2->getDataType() == "VOID") {
-                fprintf(errorout,"Line# %d: Void cannot be used in expression\n",$2->getStartLine());
+                fprintf(errorout,"Line# %d: Void cannot be used in expression \n",$2->getStartLine());
                 error_count++;
             }
 
@@ -956,32 +960,36 @@ factor	: variable {
             error_count++;
         }
         else {
-            // check if argument count match
-            int argCount = symInfo->getFuncParamCount();
-            if (argCount > int(currentArgs.size())) {
-                fprintf(errorout,"Line# %d: Too few arguments to function \'%s\'\n",$1->getStartLine(),$1->getName().c_str());
-                error_count++;
-            }
-            else if (argCount < int(currentArgs.size())) {
-                fprintf(errorout,"Line# %d: Too many arguments to function \'%s\'\n",$1->getStartLine(),$1->getName().c_str());
+            // check if it's even a function
+            if (!symInfo->getFunction()) {
+                fprintf(errorout,"Line# %d: \'%s\' is not a function\n",$1->getStartLine(),$1->getName().c_str());
                 error_count++;
             }
             else {
-                // argument count matches
-                // check if the types are compatible
-                for (int i = 0; i < int(currentArgs.size()); i++) {
-                    if (!symInfo->matchFuncParamType(i, currentArgs[i]->getDataType())) {
-                        fprintf(errorout,"Line# %d: Type mismatch for argument %d of \'%s\'\n",$1->getStartLine(), i+1, $1->getName().c_str());
-                        error_count++;
+                // check if argument count match
+                int argCount = symInfo->getFuncParamCount();
+                if (argCount > int(currentArgs.size())) {
+                    fprintf(errorout,"Line# %d: Too few arguments to function \'%s\'\n",$1->getStartLine(),$1->getName().c_str());
+                    error_count++;
+                }
+                else if (argCount < int(currentArgs.size())) {
+                    fprintf(errorout,"Line# %d: Too many arguments to function \'%s\'\n",$1->getStartLine(),$1->getName().c_str());
+                    error_count++;
+                }
+                else {
+                    // argument count matches
+                    // check if the types are compatible
+                    for (int i = 0; i < int(currentArgs.size()); i++) {
+                        if (!symInfo->matchFuncParamType(i, currentArgs[i]->getDataType())) {
+                            fprintf(errorout,"Line# %d: Type mismatch for argument %d of \'%s\'\n",$1->getStartLine(), i+1, $1->getName().c_str());
+                            error_count++;
+                        }
                     }
                 }
-                
             }
-            
             $$->setDataType(symInfo->getFuncReturnType());
         }
         currentArgs.clear();
-        
     }
 	| LPAREN expression RPAREN {
         $$ = new SymbolInfo("factor : LPAREN expression RPAREN ", "");
@@ -994,7 +1002,7 @@ factor	: variable {
         $$->addTreeChild($3);
 
         if ($2->getDataType() == "VOID") {
-            fprintf(errorout,"Line# %d: Void cannot be used in expression\n",$2->getStartLine());
+            fprintf(errorout,"Line# %d: Void cannot be used in expression \n",$2->getStartLine());
             error_count++;
         }
         else {

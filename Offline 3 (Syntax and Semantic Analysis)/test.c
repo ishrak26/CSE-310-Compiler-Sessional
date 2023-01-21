@@ -1,11 +1,8 @@
-int x,y,z; 
-float ab;
+int x,y,z; float a;
 
 void foo();
-int var(int a, int b);
 
 int var(int a, int b){
-	a = a + y * 2;
 	return a+b;
 }
 
@@ -15,45 +12,13 @@ void foo(){
 }
 
 int main(){
-	int c,i,a[2],j ; float d;
-	c = 4;
-	d = 9.5;
-	j = 9;
-	
-	{
-		a[0]=1;
-		a[1]=var(c,j);
-	}
+	int a[2],c,i,j ; float d;
+	int k;
+	a[0];
+	a[1]=5;
 	i= a[0]+a[1];
-	
-	if(c<a[0]){
-		c = 7;
-	}
-	
-	
-	if(c<d){
-		a[1] = -a[1];;
-	}
-	else if(c<2*d){
-		a[0] = !(7<5);
-	}
-	else{
-		d = 2;
-	}
-	
-	for(c=0;c<2*d+3;c++){
-		a[0] = a[0] * 4;
-	}
-	
-	while(a[0]--){
-		c = c - 2;
-	}
-	
-	printf(c);
-	
-	
-	
 	j= 2*3+(5%3 < 4 && 8) || 2 ;
 	d=var(1,2*3)+3.5*2;
 	return 0;
 }
+
