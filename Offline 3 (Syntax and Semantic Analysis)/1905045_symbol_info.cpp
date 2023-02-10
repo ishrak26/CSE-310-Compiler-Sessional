@@ -23,6 +23,7 @@ class SymbolInfo {
         setNextSymbol(nullptr);
         setArray(false);
         setFunction(false);
+        setRule(false);
     }
 
 public:
@@ -48,6 +49,12 @@ public:
         isRule = symInfo->getRule();
         startLine = symInfo->getStartLine();
         endLine = symInfo->getEndLine();
+    }
+
+    ~SymbolInfo() {
+        if (isFunction) {
+            delete funcInfo;
+        }
     }
 
     void setName(const string &name) {
@@ -178,6 +185,18 @@ public:
         }
         else {
             fprintf(fp, "%s : %s\t<Line: %d>\n", type.c_str(), name.c_str(), startLine);
+        }
+    }
+
+    // post-order traversal
+    void destroyTree() {
+        if (isRule) {
+            for (int i = 0; i < int(treeChildren.size()); i++) {
+                if (!treeChildren[i]->getFunction()) {
+                    treeChildren[i]->destroyTree();
+                    delete treeChildren[i];
+                }
+            }
         }
     }
 

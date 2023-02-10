@@ -18,6 +18,7 @@ extern FILE *logout;
 
 extern SymbolTable st;
 extern bool scopeStarted;
+extern bool paramOn;
 
 extern YYSTYPE yylval;
 void yyerror(char *);
@@ -202,8 +203,14 @@ NEWLINE \n
 		}
 
 \{	{
-			if (!scopeStarted) {
-				st.enter_scope(); // for empty parameter case
+			// if (!scopeStarted) {
+			// 	st.enter_scope(); // for empty parameter case
+			// }
+			if (paramOn) {
+				paramOn = false; // this is the LCURL for function beginning
+			}
+			else {
+				st.enter_scope(); // new scope inside a function
 			}
 			fprintf(logout,"Line# %d: Token <LCURL> Lexeme %s found\n",line_count,yytext);
 			yylval.symInfo = new SymbolInfo(string(yytext), "LCURL");
@@ -255,14 +262,13 @@ NEWLINE \n
 
  /* identifiers */
 [_A-Za-z][_0-9A-Za-z]* {
-			// cerr << "written in token\n";
 			fprintf(logout,"Line# %d: Token <ID> Lexeme %s found\n",line_count,yytext);
-			// if (string(yytext) == "printf") {
-			// 	yylval.symInfo = new SymbolInfo(string(yytext), "PRINTLN");
-			// 	yylval.symInfo->setStartLine(line_count);
-			// 	yylval.symInfo->setEndLine(line_count);
-			// 	return PRINTLN;
-			// }
+			if (string(yytext) == "println") {
+				yylval.symInfo = new SymbolInfo(string(yytext), "PRINTLN");
+				yylval.symInfo->setStartLine(line_count);
+				yylval.symInfo->setEndLine(line_count);
+				return PRINTLN;
+			}
             yylval.symInfo = new SymbolInfo(string(yytext), "ID");
 			yylval.symInfo->setStartLine(line_count);
 			yylval.symInfo->setEndLine(line_count);

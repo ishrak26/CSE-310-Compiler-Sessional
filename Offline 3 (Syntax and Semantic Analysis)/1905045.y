@@ -43,6 +43,7 @@ vector<SymbolInfo*> currentParams;
 vector<SymbolInfo*> currentArgs;
 bool scopeStarted = false;
 bool paramAdd = false;
+bool paramOn = false;
 bool currFuncReturn; // true if sth is returned i.e. non-void
 int returnStartLine;
 
@@ -81,6 +82,8 @@ start : program
         $$->setEndLine($1->getEndLine());
         $$->addTreeChild($1);
         $$->printTree(parseout, 0);
+        $$->destroyTree();
+        delete $$;
 	}
 	;
 
@@ -164,6 +167,7 @@ func_declaration : type_specifier ID LPAREN parameter_list RPAREN SEMICOLON {
                     $2->addFuncParam(currentParams[i]);
                 }
                 currentParams.clear();
+                paramOn = false;
             }
 		| type_specifier ID LPAREN RPAREN SEMICOLON {
                 $$ = new SymbolInfo("func_declaration : type_specifier ID LPAREN RPAREN SEMICOLON ", "");
@@ -303,6 +307,7 @@ parameter_list  : parameter_list COMMA type_specifier ID {
                 }
             }
             currentParams.push_back($4);
+            
         }
 		| parameter_list COMMA type_specifier {
             $$ = new SymbolInfo("parameter_list : parameter_list COMMA type_specifier ", "");
@@ -325,6 +330,7 @@ parameter_list  : parameter_list COMMA type_specifier ID {
                 }
             }
             currentParams.push_back($3);
+            
         }
  		| type_specifier ID {
             st.enter_scope();
@@ -351,6 +357,7 @@ parameter_list  : parameter_list COMMA type_specifier ID {
             }
             
             currentParams.push_back($2);
+            paramOn = true;
         }
 		| type_specifier {
             st.enter_scope();
@@ -375,6 +382,7 @@ parameter_list  : parameter_list COMMA type_specifier ID {
                 }
             }
             currentParams.push_back($1);
+            paramOn = true;
         }
  		;
 
@@ -623,14 +631,23 @@ statement : var_declaration {
             $$->addTreeChild($5);
         }
 	  | PRINTLN LPAREN ID RPAREN SEMICOLON {
-            // int table_no, pos, idx;
-            // SymbolInfo* symInfo = st.look_up($3->getName(), idx, pos, table_no);
-            // if (symInfo == nullptr) {
-            //     fprintf(errorout,"Line# %d: Undeclared variable \'%s\'\n",$3->getStartLine(),$3->getName().c_str());
-            //     error_count++;
-            // }
-            // fprintf(errorout,"Line# %d: Undeclared function \'printf\'\n",$1->getStartLine());
-            // error_count++;
+            $$ = new SymbolInfo("statement : PRINTLN LPAREN ID RPAREN SEMICOLON ", "");
+            fprintf(logout, "%s\n", $$->getName().c_str());
+            $$->setRule(true);
+            $$->setStartLine($1->getStartLine());
+            $$->setEndLine($5->getEndLine());
+            $$->addTreeChild($1);
+            $$->addTreeChild($2);
+            $$->addTreeChild($3);
+            $$->addTreeChild($4);
+            $$->addTreeChild($5);
+            
+            int table_no, pos, idx;
+            SymbolInfo* symInfo = st.look_up($3->getName(), idx, pos, table_no);
+            if (symInfo == nullptr) {
+                fprintf(errorout,"Line# %d: Undeclared variable \'%s\'\n",$3->getStartLine(),$3->getName().c_str());
+                error_count++;
+            }
         }
 	  | RETURN expression SEMICOLON {
             $$ = new SymbolInfo("statement : RETURN expression SEMICOLON ", "");
