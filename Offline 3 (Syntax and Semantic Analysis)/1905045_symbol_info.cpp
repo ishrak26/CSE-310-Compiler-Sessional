@@ -18,12 +18,14 @@ class SymbolInfo {
     int endLine;
     vector<SymbolInfo*> treeChildren;
     string constVal;
+    bool funcParamNoName; // to handle function declaration
 
     void init() {
         setNextSymbol(nullptr);
         setArray(false);
         setFunction(false);
         setRule(false);
+        setFuncParamNoName(false);
     }
 
 public:
@@ -49,6 +51,7 @@ public:
         isRule = symInfo->getRule();
         startLine = symInfo->getStartLine();
         endLine = symInfo->getEndLine();
+        funcParamNoName = symInfo->getFuncParamNoName();
     }
 
     ~SymbolInfo() {
@@ -222,6 +225,14 @@ public:
 
     string getConstVal() const {
         return constVal;
+    }
+
+    void setFuncParamNoName(bool val) {
+        funcParamNoName = val;
+    }
+
+    bool getFuncParamNoName() const {
+        return funcParamNoName;
     }
     
 };

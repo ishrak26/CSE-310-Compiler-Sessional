@@ -27,7 +27,7 @@ bool FuncInfo::matchParamType(int idx, string type) {
 
 bool FuncInfo::checkParam(string name) {
     for (int i = 0; i < paramSize(); i++) {
-        if (name == params[i]->getName()) {
+        if (name == params[i]->getName() && !params[i]->getFuncParamNoName()) {
             return true;
         }
     }
@@ -320,15 +320,16 @@ parameter_list  : parameter_list COMMA type_specifier ID {
             $$->addTreeChild($3);
             
             $3->setDataType($3->getType());
-            if (paramAdd) {
-                int table_no, idx, pos;
-                bool ret = st.insert(new SymbolInfo($3), idx, pos, table_no);
-                if (!ret) {
-                    // found 
-                    paramAdd = false;
-                    // fprintf(logout, "\t%s already exists in the current ScopeTable\n", $3->getName().c_str());
-                }
-            }
+            $3->setFuncParamNoName(true);
+            // if (paramAdd) {
+            //     int table_no, idx, pos;
+            //     bool ret = st.insert(new SymbolInfo($3), idx, pos, table_no);
+            //     if (!ret) {
+            //         // found 
+            //         paramAdd = false;
+            //         // fprintf(logout, "\t%s already exists in the current ScopeTable\n", $3->getName().c_str());
+            //     }
+            // }
             currentParams.push_back($3);
             
         }
@@ -371,16 +372,17 @@ parameter_list  : parameter_list COMMA type_specifier ID {
             $$->addTreeChild($1);
             
             $1->setDataType($1->getType());
+            $1->setFuncParamNoName(true);
             
-            if (paramAdd) {
-                int table_no, idx, pos;
-                bool ret = st.insert(new SymbolInfo($1), idx, pos, table_no);
-                if (!ret) {
-                    // found 
-                    paramAdd = false;
-                    // fprintf(logout, "\t%s already exists in the current ScopeTable\n", $1->getName().c_str());
-                }
-            }
+            // if (paramAdd) {
+            //     int table_no, idx, pos;
+            //     bool ret = st.insert(new SymbolInfo($1), idx, pos, table_no);
+            //     if (!ret) {
+            //         // found 
+            //         paramAdd = false;
+            //         // fprintf(logout, "\t%s already exists in the current ScopeTable\n", $1->getName().c_str());
+            //     }
+            // }
             currentParams.push_back($1);
             paramOn = true;
         }
