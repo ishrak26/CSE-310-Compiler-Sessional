@@ -76,3 +76,23 @@ Offline 3 (Syntax and Semantic Analysis)/1905045/
 Offline 3 (Syntax and Semantic Analysis)/eval/1905045/
 
 Offline 3 (Syntax and Semantic Analysis)/test-eval/
+
+Offline 3 (Syntax and Semantic Analysis)/test_error.txt
+
+Offline 3 (Syntax and Semantic Analysis)/test_log.txt
+
+Offline 3 (Syntax and Semantic Analysis)/test_parse.txt
+
+Offline 4 (Intermediate Code Generation)/lex.yy.c
+
+Offline 4 (Intermediate Code Generation)/test
+
+Offline 4 (Intermediate Code Generation)/test_error.txt
+
+Offline 4 (Intermediate Code Generation)/test_log.txt
+
+Offline 4 (Intermediate Code Generation)/test_parse.txt
+
+Offline 4 (Intermediate Code Generation)/y.tab.c
+
+Offline 4 (Intermediate Code Generation)/y.tab.h
