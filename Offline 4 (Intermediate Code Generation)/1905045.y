@@ -16,6 +16,7 @@ FILE *fp;
 FILE *logout;
 FILE *parseout;
 FILE *errorout;
+FILE *tmpasmout;
 FILE *asmout;
 
 int line_count = 1;
@@ -48,6 +49,28 @@ bool paramOn = false;
 bool currFuncReturn; // true if sth is returned i.e. non-void
 int returnStartLine;
 int currStackOffset = -1;
+
+void write_final_assembly() {
+    fprintf(asmout, ".MODEL SMALL\n");
+    fprintf(asmout, ".STACK 1000H\n");
+    fprintf(asmout, ".DATA\n");
+    fprintf(asmout, "\tCR EQU 0DH\n");
+    fprintf(asmout, "\tLF EQU 0AH\n");
+    fprintf(asmout, "\tnumber DB \"00000$\"\n");
+    fprintf(asmout, ".CODE\n");
+
+    fclose(tmpasmout);
+    tmpasmout = fopen("tmp_test_i_code.asm","r");
+    char cstr[100];
+    while (fgets(cstr, 95, tmpasmout)) {
+        fprintf(asmout, "%s", cstr);
+    }
+
+    fprintf(asmout, "new_line proc\n\tpush ax\n\tpush dx\n\tmov ah,2\n\tmov dl,cr\n\tint 21h\n\tmov ah,2\n\tmov dl,lf\n\tint 21h\n\tpop dx\n\tpop ax\n\tret\nnew_line endp\n");
+    
+    fprintf(asmout, "print_output proc  ;print what is in ax\n\tpush ax\n\tpush bx\n\tpush cx\n\tpush dx\n\tpush si\n\tlea si,number\n\tmov bx,10\n\tadd si,4\n\tcmp ax,0\n\tjnge negate\n\tprint:\n\txor dx,dx\n\tdiv bx\n\tmov [si],dl\n\tadd [si],\'0\'\n\tdec si\n\tcmp ax,0\n\tjne print\n\tinc si\n\tlea dx,si\n\tmov ah,9\n\tint 21h\n\tpop si\n\tpop dx\n\tpop cx\n\tpop bx\n\tpop ax\n\tret\n\tnegate:\n\tpush ax\n\tmov ah,2\n\tmov dl,\'-\'\n\tint 21h\n\tpop ax\n\tneg ax\n\tjmp print\nprint_output endp\nEND main\n");
+
+}
 
 void yyerror(char *s)
 {
@@ -87,6 +110,8 @@ start : program
         $$->printTree(parseout, 0);
         $$->destroyTree();
         delete $$;
+
+        write_final_assembly();
 	}
 	;
 
@@ -197,7 +222,7 @@ func_declaration : type_specifier ID LPAREN parameter_list RPAREN SEMICOLON {
 		 
 func_definition : type_specifier ID LPAREN parameter_list RPAREN {
                     currStackOffset = 0;
-                    
+                    fprintf(tmpasmout, "%s PROC\n", $2->getName().c_str());
                 } compound_statement {
                 $$ = new SymbolInfo("func_definition : type_specifier ID LPAREN parameter_list RPAREN compound_statement ", "");
                 fprintf(logout, "%s\n", $$->getName().c_str());
@@ -249,11 +274,18 @@ func_definition : type_specifier ID LPAREN parameter_list RPAREN {
                 } 
                 currFuncReturn = false;
                 currStackOffset = -1;
+                
+                fprintf(tmpasmout, "%s ENDP\n", $2->getName().c_str());
         }
 		| type_specifier ID LPAREN RPAREN {
             currStackOffset = 0;
-            fprintf(asmout, "\tPUSH BP\n");
-            fprintf(asmout, "\tMOV BP, SP\n");
+            fprintf(tmpasmout, "%s PROC\n", $2->getName().c_str());
+            if ($2->getName() == "main") {
+                fprintf(tmpasmout, "\tMOV AX, @DATA\n\tMOV DS, AX\n");
+            }
+            fprintf(tmpasmout, "\tPUSH BP\n");
+            fprintf(tmpasmout, "\tMOV BP, SP\n");
+            
         } compound_statement {
                 $$ = new SymbolInfo("func_definition : type_specifier ID LPAREN RPAREN compound_statement ", "");
                 fprintf(logout, "%s\n", $$->getName().c_str());
@@ -292,9 +324,14 @@ func_definition : type_specifier ID LPAREN parameter_list RPAREN {
                     error_count++;
                 } 
                 currFuncReturn = false;
-                fprintf(asmout, "\tADD SP, %d\n", currStackOffset);
-                fprintf(asmout, "\tPOP BP\n");
+                fprintf(tmpasmout, "\tADD SP, %d\n", currStackOffset);
+                fprintf(tmpasmout, "\tPOP BP\n");
                 currStackOffset = -1;
+                if ($2->getName() == "main") {
+                    fprintf(tmpasmout, "\tMOV AX,4CH\n");
+                    fprintf(tmpasmout, "\tINT 21H\n");
+                }
+                fprintf(tmpasmout, "%s ENDP\n", $2->getName().c_str());
         }
  		;				
 
@@ -472,7 +509,7 @@ var_declaration : type_specifier declaration_list SEMICOLON {
                                 symInfo->setGlobal(false);
                                 currStackOffset += 2;
                                 symInfo->setStackOffset(currStackOffset);
-                                fprintf(asmout, "\tSUB SP, 2\n");
+                                fprintf(tmpasmout, "\tSUB SP, 2\n");
                                 string varName = "[BP-" + to_string(currStackOffset) + "]";
                                 symInfo->setVarName(varName);
                             }
@@ -683,9 +720,9 @@ statement : var_declaration {
                 error_count++;
             }
             else {
-                fprintf(asmout, "\tMOV AX, %s\n", symInfo->getVarName().c_str());
-                fprintf(asmout, "\tCALL print_output\n");
-                fprintf(asmout, "\tCALL new_line\n");
+                fprintf(tmpasmout, "\tMOV AX, %s\n", symInfo->getVarName().c_str());
+                fprintf(tmpasmout, "\tCALL print_output\n");
+                fprintf(tmpasmout, "\tCALL new_line\n");
             }
         }
 	  | RETURN expression SEMICOLON {
@@ -705,7 +742,7 @@ statement : var_declaration {
 
             currFuncReturn = true;
             returnStartLine = $1->getStartLine();
-            fprintf(asmout, "\tPOP AX\n");
+            fprintf(tmpasmout, "\tPOP AX\n");
         }
 	  ;
 	  
@@ -725,7 +762,7 @@ expression_statement 	: SEMICOLON	{
                 $$->setEndLine($2->getEndLine());
                 $$->addTreeChild($1);
                 $$->addTreeChild($2);
-                fprintf(asmout, "\tPOP AX\n");
+                fprintf(tmpasmout, "\tPOP AX\n");
             }
 			;
 	  
@@ -821,9 +858,9 @@ expression : logic_expression	{
                 error_count++;
             }
             else {
-                fprintf(asmout, "\tPOP AX\n");
-                fprintf(asmout, "\tMOV %s, AX\n", $1->getVarName().c_str());
-                fprintf(asmout, "\tPUSH AX\n");
+                fprintf(tmpasmout, "\tPOP AX\n");
+                fprintf(tmpasmout, "\tMOV %s, AX\n", $1->getVarName().c_str());
+                fprintf(tmpasmout, "\tPUSH AX\n");
             }
         }	
 	   ;
@@ -922,16 +959,16 @@ simple_expression : term {
                 error_count++;
             }
             $$->setDataType($1->getDataType());
-            fprintf(asmout, "\tPOP BX\n"); // term
-            fprintf(asmout, "\tPOP AX\n"); // simple expression
+            fprintf(tmpasmout, "\tPOP BX\n"); // term
+            fprintf(tmpasmout, "\tPOP AX\n"); // simple expression
             if ($2->getName() == "+") {
-                fprintf(asmout, "\tADD ");
+                fprintf(tmpasmout, "\tADD ");
             }
             else {
-                fprintf(asmout, "\tSUB ");
+                fprintf(tmpasmout, "\tSUB ");
             }
-            fprintf(asmout, "AX, BX\n");
-            fprintf(asmout, "\tPUSH AX\n");
+            fprintf(tmpasmout, "AX, BX\n");
+            fprintf(tmpasmout, "\tPUSH AX\n");
           }
 		  ;
 					
@@ -974,11 +1011,11 @@ term :	unary_expression {
             }
             $$->setDataType($1->getDataType());
             if ($2->getName() == "*") {
-                fprintf(asmout, "\tPOP BX\n"); // unary expression
-                fprintf(asmout, "\tPOP AX\n"); // term
-                fprintf(asmout, "\tCWD\n");
-                fprintf(asmout, "\tIMUL BX\n");
-                fprintf(asmout, "\tPUSH AX\n");
+                fprintf(tmpasmout, "\tPOP BX\n"); // unary expression
+                fprintf(tmpasmout, "\tPOP AX\n"); // term
+                fprintf(tmpasmout, "\tCWD\n");
+                fprintf(tmpasmout, "\tIMUL BX\n");
+                fprintf(tmpasmout, "\tPUSH AX\n");
             }
         }
      ;
@@ -1117,8 +1154,8 @@ factor	: variable {
         $$->setDataType("INT");
         $$->setConstVal($1->getName());
 
-        fprintf(asmout, "\tMOV AX, %s\n", $1->getName().c_str());
-        fprintf(asmout, "\tPUSH AX\n");
+        fprintf(tmpasmout, "\tMOV AX, %s\n", $1->getName().c_str());
+        fprintf(tmpasmout, "\tPUSH AX\n");
     }
 	| CONST_FLOAT {
         $$ = new SymbolInfo("factor : CONST_FLOAT ", "");
@@ -1214,12 +1251,15 @@ int main(int argc,char *argv[])
 	logout= fopen(argv[4],"w");
 	fclose(logout);
     asmout= fopen(argv[5],"w");
-	fclose(asmout);
+    fclose(asmout);
+    tmpasmout= fopen("tmp_test_i_code.asm","w");
+	fclose(tmpasmout);
 	
 	parseout= fopen(argv[2],"a");
     errorout= fopen(argv[3],"a");
 	logout= fopen(argv[4],"a");
     asmout= fopen(argv[5],"a");
+    tmpasmout = fopen("tmp_test_i_code.asm","a");
 
 	yyin=fp;
 	yyparse();
@@ -1231,6 +1271,7 @@ int main(int argc,char *argv[])
     fclose(errorout);
 	fclose(logout);
     fclose(asmout);
+    
     fclose(fp);
 	
 	return 0;
