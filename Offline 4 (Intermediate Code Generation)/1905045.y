@@ -65,8 +65,9 @@ void yyerror(char *s)
 
 %type<symInfo> start program unit var_declaration func_declaration func_definition type_specifier parameter_list compound_statement statements declaration_list statement expression_statement expression logic_expression variable rel_expression simple_expression term unary_expression factor argument_list arguments 
 
-/* %left 
-%right */
+%left ADDOP
+%left MULOP
+/* %right */
 
 %nonassoc THEN
 %nonassoc ELSE
@@ -704,6 +705,7 @@ statement : var_declaration {
 
             currFuncReturn = true;
             returnStartLine = $1->getStartLine();
+            fprintf(asmout, "\tPOP AX\n");
         }
 	  ;
 	  
@@ -723,6 +725,7 @@ expression_statement 	: SEMICOLON	{
                 $$->setEndLine($2->getEndLine());
                 $$->addTreeChild($1);
                 $$->addTreeChild($2);
+                fprintf(asmout, "\tPOP AX\n");
             }
 			;
 	  
@@ -746,6 +749,7 @@ variable : ID {
                 error_count++;
             }
             $$->setDataType(symInfo->getDataType());
+            $$->setVarName(symInfo->getVarName());
         }
         
     }	
@@ -816,7 +820,11 @@ expression : logic_expression	{
                 fprintf(errorout,"Line# %d: Warning: possible loss of data in assignment of FLOAT to INT\n",$1->getStartLine());
                 error_count++;
             }
-            
+            else {
+                fprintf(asmout, "\tPOP AX\n");
+                fprintf(asmout, "\tMOV %s, AX\n", $1->getVarName().c_str());
+                fprintf(asmout, "\tPUSH AX\n");
+            }
         }	
 	   ;
 			
@@ -914,6 +922,16 @@ simple_expression : term {
                 error_count++;
             }
             $$->setDataType($1->getDataType());
+            fprintf(asmout, "\tPOP BX\n"); // term
+            fprintf(asmout, "\tPOP AX\n"); // simple expression
+            if ($2->getName() == "+") {
+                fprintf(asmout, "\tADD ");
+            }
+            else {
+                fprintf(asmout, "\tSUB ");
+            }
+            fprintf(asmout, "AX, BX\n");
+            fprintf(asmout, "\tPUSH AX\n");
           }
 		  ;
 					
@@ -955,7 +973,13 @@ term :	unary_expression {
                 error_count++;
             }
             $$->setDataType($1->getDataType());
-
+            if ($2->getName() == "*") {
+                fprintf(asmout, "\tPOP BX\n"); // unary expression
+                fprintf(asmout, "\tPOP AX\n"); // term
+                fprintf(asmout, "\tCWD\n");
+                fprintf(asmout, "\tIMUL BX\n");
+                fprintf(asmout, "\tPUSH AX\n");
+            }
         }
      ;
 
@@ -1092,6 +1116,9 @@ factor	: variable {
 
         $$->setDataType("INT");
         $$->setConstVal($1->getName());
+
+        fprintf(asmout, "\tMOV AX, %s\n", $1->getName().c_str());
+        fprintf(asmout, "\tPUSH AX\n");
     }
 	| CONST_FLOAT {
         $$ = new SymbolInfo("factor : CONST_FLOAT ", "");
