@@ -1019,12 +1019,22 @@ term :	unary_expression {
                 error_count++;
             }
             $$->setDataType($1->getDataType());
+            
+            fprintf(tmpasmout, "\tPOP BX\n"); // unary expression
+            fprintf(tmpasmout, "\tPOP AX\n"); // term
+            fprintf(tmpasmout, "\tCWD\n");
             if ($2->getName() == "*") {
-                fprintf(tmpasmout, "\tPOP BX\n"); // unary expression
-                fprintf(tmpasmout, "\tPOP AX\n"); // term
-                fprintf(tmpasmout, "\tCWD\n");
                 fprintf(tmpasmout, "\tIMUL BX\n");
                 fprintf(tmpasmout, "\tPUSH AX\n");
+            }
+            else {
+                fprintf(tmpasmout, "\tIDIV BX\n");
+                if ($2->getName() == "/") {
+                    fprintf(tmpasmout, "\tPUSH AX\n");
+                }
+                else {
+                    fprintf(tmpasmout, "\tPUSH DX\n");
+                }
             }
         }
      ;
