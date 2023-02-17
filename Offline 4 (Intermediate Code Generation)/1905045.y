@@ -43,6 +43,7 @@ SymbolTable st(NUM_BUCKETS);
 vector<SymbolInfo*> currentVars;
 vector<SymbolInfo*> currentParams;
 vector<SymbolInfo*> currentArgs;
+vector<SymbolInfo*> globalVars;
 bool scopeStarted = false;
 bool paramAdd = false;
 bool paramOn = false;
@@ -57,6 +58,13 @@ void write_final_assembly() {
     fprintf(asmout, "\tCR EQU 0DH\n");
     fprintf(asmout, "\tLF EQU 0AH\n");
     fprintf(asmout, "\tnumber DB \"00000$\"\n");
+
+    // insert the global variables
+    for (int i = 0; i < globalVars.size(); i++) {
+        SymbolInfo* symInfo = globalVars[i];
+        fprintf(asmout, "\t%s DW 1 (0000H)\n", symInfo->getName().c_str());
+    }
+
     fprintf(asmout, ".CODE\n");
 
     fclose(tmpasmout);
@@ -504,6 +512,7 @@ var_declaration : type_specifier declaration_list SEMICOLON {
                                 // global variable
                                 symInfo->setGlobal(true);
                                 symInfo->setVarName(symInfo->getName());
+                                globalVars.push_back(symInfo);
                             }
                             else {
                                 symInfo->setGlobal(false);
@@ -1074,6 +1083,9 @@ factor	: variable {
         $$->addTreeChild($1);
 
         $$->setDataType($1->getDataType());
+
+        fprintf(tmpasmout, "\tMOV AX, %s\n", $1->getVarName().c_str());
+        fprintf(tmpasmout, "\tPUSH AX\n");
     }
 	| ID LPAREN argument_list RPAREN {
         $$ = new SymbolInfo("factor : ID LPAREN argument_list RPAREN ", "");
