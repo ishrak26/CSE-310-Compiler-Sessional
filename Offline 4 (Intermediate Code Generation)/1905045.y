@@ -21,6 +21,8 @@ FILE *asmout;
 
 int line_count = 1;
 int error_count = 0;
+int currLabel = 1;
+int tmpLineCnt = 0;
 
 bool FuncInfo::matchParamType(int idx, string type) {
     assert(idx < params.size());
@@ -78,6 +80,12 @@ void write_final_assembly() {
     
     fprintf(asmout, "print_output proc  ;print what is in ax\n\tpush ax\n\tpush bx\n\tpush cx\n\tpush dx\n\tpush si\n\tlea si,number\n\tmov bx,10\n\tadd si,4\n\tcmp ax,0\n\tjnge negate\n\tprint:\n\txor dx,dx\n\tdiv bx\n\tmov [si],dl\n\tadd [si],\'0\'\n\tdec si\n\tcmp ax,0\n\tjne print\n\tinc si\n\tlea dx,si\n\tmov ah,9\n\tint 21h\n\tpop si\n\tpop dx\n\tpop cx\n\tpop bx\n\tpop ax\n\tret\n\tnegate:\n\tpush ax\n\tmov ah,2\n\tmov dl,\'-\'\n\tint 21h\n\tpop ax\n\tneg ax\n\tjmp print\nprint_output endp\nEND main\n");
 
+}
+
+void printNewLabel() {
+    fprintf(tmpasmout, "L%d:\n", currLabel);
+    tmpLineCnt++;
+    currLabel++;
 }
 
 void yyerror(char *s)
@@ -231,6 +239,7 @@ func_declaration : type_specifier ID LPAREN parameter_list RPAREN SEMICOLON {
 func_definition : type_specifier ID LPAREN parameter_list RPAREN {
                     currStackOffset = 0;
                     fprintf(tmpasmout, "%s PROC\n", $2->getName().c_str());
+                    tmpLineCnt++;
                 } compound_statement {
                 $$ = new SymbolInfo("func_definition : type_specifier ID LPAREN parameter_list RPAREN compound_statement ", "");
                 fprintf(logout, "%s\n", $$->getName().c_str());
@@ -284,15 +293,19 @@ func_definition : type_specifier ID LPAREN parameter_list RPAREN {
                 currStackOffset = -1;
                 
                 fprintf(tmpasmout, "%s ENDP\n", $2->getName().c_str());
+                tmpLineCnt++;
         }
 		| type_specifier ID LPAREN RPAREN {
             currStackOffset = 0;
             fprintf(tmpasmout, "%s PROC\n", $2->getName().c_str());
+            tmpLineCnt++;
             if ($2->getName() == "main") {
                 fprintf(tmpasmout, "\tMOV AX, @DATA\n\tMOV DS, AX\n");
+                tmpLineCnt += 2;
             }
             fprintf(tmpasmout, "\tPUSH BP\n");
             fprintf(tmpasmout, "\tMOV BP, SP\n");
+            tmpLineCnt += 2;
             
         } compound_statement {
                 $$ = new SymbolInfo("func_definition : type_specifier ID LPAREN RPAREN compound_statement ", "");
@@ -334,12 +347,15 @@ func_definition : type_specifier ID LPAREN parameter_list RPAREN {
                 currFuncReturn = false;
                 fprintf(tmpasmout, "\tADD SP, %d\n", currStackOffset);
                 fprintf(tmpasmout, "\tPOP BP\n");
+                tmpLineCnt += 2;
                 currStackOffset = -1;
                 if ($2->getName() == "main") {
                     fprintf(tmpasmout, "\tMOV AX,4CH\n");
                     fprintf(tmpasmout, "\tINT 21H\n");
+                    tmpLineCnt += 2;
                 }
                 fprintf(tmpasmout, "%s ENDP\n", $2->getName().c_str());
+                tmpLineCnt++;
         }
  		;				
 
@@ -519,6 +535,7 @@ var_declaration : type_specifier declaration_list SEMICOLON {
                                 currStackOffset += 2;
                                 symInfo->setStackOffset(currStackOffset);
                                 fprintf(tmpasmout, "\tSUB SP, 2\n");
+                                tmpLineCnt++;
                                 string varName = "[BP-" + to_string(currStackOffset) + "]";
                                 symInfo->setVarName(varName);
                             }
@@ -622,6 +639,7 @@ statements : statement {
             $$->setStartLine($1->getStartLine());
             $$->setEndLine($1->getEndLine());
             $$->addTreeChild($1);
+            printNewLabel();
         }
 	   | statements statement {
             $$ = new SymbolInfo("statements : statements statement ", "");
@@ -631,6 +649,7 @@ statements : statement {
             $$->setEndLine($2->getEndLine());
             $$->addTreeChild($1);
             $$->addTreeChild($2);
+            printNewLabel();
        }
 	   ;
 	   
@@ -732,6 +751,7 @@ statement : var_declaration {
                 fprintf(tmpasmout, "\tMOV AX, %s\n", symInfo->getVarName().c_str());
                 fprintf(tmpasmout, "\tCALL print_output\n");
                 fprintf(tmpasmout, "\tCALL new_line\n");
+                tmpLineCnt += 3;
             }
         }
 	  | RETURN expression SEMICOLON {
@@ -752,6 +772,7 @@ statement : var_declaration {
             currFuncReturn = true;
             returnStartLine = $1->getStartLine();
             fprintf(tmpasmout, "\tPOP AX\n");
+            tmpLineCnt++;
         }
 	  ;
 	  
@@ -772,6 +793,7 @@ expression_statement 	: SEMICOLON	{
                 $$->addTreeChild($1);
                 $$->addTreeChild($2);
                 fprintf(tmpasmout, "\tPOP AX\n");
+                tmpLineCnt++;
             }
 			;
 	  
@@ -870,6 +892,7 @@ expression : logic_expression	{
                 fprintf(tmpasmout, "\tPOP AX\n");
                 fprintf(tmpasmout, "\tMOV %s, AX\n", $1->getVarName().c_str());
                 fprintf(tmpasmout, "\tPUSH AX\n");
+                tmpLineCnt += 3;
             }
         }	
 	   ;
@@ -970,6 +993,7 @@ simple_expression : term {
             $$->setDataType($1->getDataType());
             fprintf(tmpasmout, "\tPOP BX\n"); // term
             fprintf(tmpasmout, "\tPOP AX\n"); // simple expression
+            tmpLineCnt += 2;
             if ($2->getName() == "+") {
                 fprintf(tmpasmout, "\tADD ");
             }
@@ -978,6 +1002,7 @@ simple_expression : term {
             }
             fprintf(tmpasmout, "AX, BX\n");
             fprintf(tmpasmout, "\tPUSH AX\n");
+            tmpLineCnt += 2;
           }
 		  ;
 					
@@ -1023,9 +1048,11 @@ term :	unary_expression {
             fprintf(tmpasmout, "\tPOP BX\n"); // unary expression
             fprintf(tmpasmout, "\tPOP AX\n"); // term
             fprintf(tmpasmout, "\tCWD\n");
+            tmpLineCnt += 3;
             if ($2->getName() == "*") {
                 fprintf(tmpasmout, "\tIMUL BX\n");
                 fprintf(tmpasmout, "\tPUSH AX\n");
+                tmpLineCnt += 2;
             }
             else {
                 fprintf(tmpasmout, "\tIDIV BX\n");
@@ -1035,6 +1062,7 @@ term :	unary_expression {
                 else {
                     fprintf(tmpasmout, "\tPUSH DX\n");
                 }
+                tmpLineCnt += 2;
             }
         }
      ;
@@ -1096,6 +1124,7 @@ factor	: variable {
 
         fprintf(tmpasmout, "\tMOV AX, %s\n", $1->getVarName().c_str());
         fprintf(tmpasmout, "\tPUSH AX\n");
+        tmpLineCnt += 2;
     }
 	| ID LPAREN argument_list RPAREN {
         $$ = new SymbolInfo("factor : ID LPAREN argument_list RPAREN ", "");
@@ -1178,6 +1207,7 @@ factor	: variable {
 
         fprintf(tmpasmout, "\tMOV AX, %s\n", $1->getName().c_str());
         fprintf(tmpasmout, "\tPUSH AX\n");
+        tmpLineCnt += 2;
     }
 	| CONST_FLOAT {
         $$ = new SymbolInfo("factor : CONST_FLOAT ", "");
