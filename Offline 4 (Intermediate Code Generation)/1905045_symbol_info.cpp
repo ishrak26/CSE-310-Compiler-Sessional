@@ -22,6 +22,9 @@ class SymbolInfo {
     bool isGlobal;
     int stackOffset;
     string varName;
+    bool isBool;
+    vector<int> truelist;
+    vector<int> falselist;
 
     void init() {
         setNextSymbol(nullptr);
@@ -30,6 +33,7 @@ class SymbolInfo {
         setRule(false);
         setFuncParamNoName(false);
         setGlobal(false);
+
     }
 
 public:
@@ -262,5 +266,40 @@ public:
     string getVarName() const {
         return varName;
     }
+
+    void setBool(bool isBool) {
+        this->isBool = isBool;
+    }
+
+    bool getBool() const {
+        return isBool;
+    }
+
+    void insertIntoTruelist(int val) {
+        truelist.push_back(val);
+    }
+
+    void insertIntoTruelist(vector<int> &list) {
+        for (int i = 0; i < list.size(); i++) {
+            insertIntoTruelist(list[i]);
+        }
+    }
     
+    void insertIntoFalselist(int val) {
+        falselist.push_back(val);
+    }
+
+    void insertIntoFalselist(vector<int> &list) {
+        for (int i = 0; i < list.size(); i++) {
+            insertIntoFalselist(list[i]);
+        }
+    }
+
+    vector<int> getTruelist() const {
+        return this->truelist;
+    }
+
+    vector<int> getFalselist() const {
+        return this->falselist;
+    }
 };

@@ -4,6 +4,7 @@
 #include<cstring>
 #include<cmath>
 #include<vector>
+#include<map>
 #include "1905045_symbol_table.cpp"
 
 using namespace std;
@@ -53,6 +54,8 @@ bool currFuncReturn; // true if sth is returned i.e. non-void
 int returnStartLine;
 int currStackOffset = -1;
 
+map<int, string> backpatchLabels;
+
 void write_final_assembly() {
     fprintf(asmout, ".MODEL SMALL\n");
     fprintf(asmout, ".STACK 1000H\n");
@@ -86,6 +89,14 @@ void printNewLabel() {
     fprintf(tmpasmout, "L%d:\n", currLabel);
     tmpLineCnt++;
     currLabel++;
+}
+
+void backpatch(vector<int> &list, int label_no) {
+    string label = "L" + to_string(label_no);
+    for (int i = 0; i < list.size(); i++) {
+        int line = list[i];
+        backpatchLabels[line] = label;
+    }
 }
 
 void yyerror(char *s)
