@@ -54,7 +54,7 @@ bool currFuncReturn; // true if sth is returned i.e. non-void
 int returnStartLine;
 int currStackOffset = -1;
 
-map<int, string> backpatchLabels;
+vector<string> backpatchLabels(10000);
 
 void write_final_assembly() {
     fprintf(asmout, ".MODEL SMALL\n");
@@ -75,8 +75,13 @@ void write_final_assembly() {
     fclose(tmpasmout);
     tmpasmout = fopen("tmp_test_i_code.asm","r");
     char cstr[100];
+    int line_no = 1;
     while (fgets(cstr, 95, tmpasmout)) {
-        fprintf(asmout, "%s", cstr);
+        string str(cstr);
+        str.pop_back();
+        str += backpatchLabels[line_no];
+        fprintf(asmout, "%s\n", str.c_str());
+        line_no++;
     }
 
     fprintf(asmout, "new_line proc\n\tpush ax\n\tpush dx\n\tmov ah,2\n\tmov dl,cr\n\tint 21h\n\tmov ah,2\n\tmov dl,lf\n\tint 21h\n\tpop dx\n\tpop ax\n\tret\nnew_line endp\n");
@@ -91,11 +96,13 @@ void printNewLabel() {
     currLabel++;
 }
 
-void backpatch(vector<int> &list, int label_no) {
+void backpatch(vector<int> list, int label_no) {
     string label = "L" + to_string(label_no);
+    // cerr << "label is " << label << '\n';
     for (int i = 0; i < list.size(); i++) {
         int line = list[i];
         backpatchLabels[line] = label;
+        // cerr << i << ' ' << list[i] << ' ' << backpatchLabels[i] << '\n';
     }
 }
 
@@ -900,6 +907,22 @@ expression : logic_expression	{
                 error_count++;
             }
             else {
+                if ($3->getBool()) {
+                    // backpatch
+                    backpatch($3->getTruelist(), currLabel);
+                    printNewLabel();
+                    fprintf(tmpasmout, "\tMOV AX, 1\n");
+                    fprintf(tmpasmout, "\tJMP L%d\n", currLabel+1);
+                    tmpLineCnt += 2;
+                    backpatch($3->getFalselist(), currLabel);
+                    printNewLabel();
+                    fprintf(tmpasmout, "\tMOV AX, 0\n");
+                    tmpLineCnt++;
+                    printNewLabel();
+                    fprintf(tmpasmout, "\tPUSH AX\n");
+                    tmpLineCnt++;
+                }
+                
                 fprintf(tmpasmout, "\tPOP AX\n");
                 fprintf(tmpasmout, "\tMOV %s, AX\n", $1->getVarName().c_str());
                 fprintf(tmpasmout, "\tPUSH AX\n");
@@ -917,6 +940,10 @@ logic_expression : rel_expression {
             $$->addTreeChild($1);
 
             $$->setDataType($1->getDataType());
+
+            $$->setBool($1->getBool());
+            $$->insertIntoTruelist($1->getTruelist());
+            $$->insertIntoFalselist($1->getFalselist());
         }	
 		 | rel_expression LOGICOP rel_expression {
             $$ = new SymbolInfo("logic_expression : rel_expression LOGICOP rel_expression ", "");
@@ -937,6 +964,7 @@ logic_expression : rel_expression {
                 error_count++;
             }
             $$->setDataType("INT");
+
          }	
 		 ;
 			
@@ -970,6 +998,35 @@ rel_expression	: simple_expression {
             }
             
             $$->setDataType("INT");
+
+            $$->setBool(true);
+            fprintf(tmpasmout, "\tPOP BX\n");
+            fprintf(tmpasmout, "\tPOP AX\n");
+            fprintf(tmpasmout, "\tCMP AX, BX\n");
+            tmpLineCnt += 3;
+            if ($2->getName() == "<") {
+                fprintf(tmpasmout, "\tJL \n");
+            }
+            else if ($2->getName() == "<=") {
+                fprintf(tmpasmout, "\tJLE \n");
+            }
+            else if ($2->getName() == ">") {
+                fprintf(tmpasmout, "\tJG \n");
+            }
+            else if ($2->getName() == ">=") {
+                fprintf(tmpasmout, "\tJGE \n");
+            }
+            else if ($2->getName() == "==") {
+                fprintf(tmpasmout, "\tJE \n");
+            }
+            else if ($2->getName() == "!=") {
+                fprintf(tmpasmout, "\tJNE \n");
+            }
+            tmpLineCnt++;
+            $$->insertIntoTruelist(tmpLineCnt);
+            fprintf(tmpasmout, "\tJMP \n");
+            tmpLineCnt++;
+            $$->insertIntoFalselist(tmpLineCnt);
         }
 		;
 				

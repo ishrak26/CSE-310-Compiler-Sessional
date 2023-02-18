@@ -279,7 +279,7 @@ public:
         truelist.push_back(val);
     }
 
-    void insertIntoTruelist(vector<int> &list) {
+    void insertIntoTruelist(vector<int> list) {
         for (int i = 0; i < list.size(); i++) {
             insertIntoTruelist(list[i]);
         }
@@ -289,7 +289,7 @@ public:
         falselist.push_back(val);
     }
 
-    void insertIntoFalselist(vector<int> &list) {
+    void insertIntoFalselist(vector<int> list) {
         for (int i = 0; i < list.size(); i++) {
             insertIntoFalselist(list[i]);
         }

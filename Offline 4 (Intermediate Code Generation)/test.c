@@ -13,8 +13,11 @@ int main() {
     m = k%9;
 	println(m);
 
-    n = i*2 + 11/4 - k%4; 
+    n = m <= ll;
     println(n);
+
+	o = i != j;
+	println(o);
     
     return 0;
 }
