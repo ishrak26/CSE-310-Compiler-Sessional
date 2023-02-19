@@ -26,6 +26,7 @@ class SymbolInfo {
     vector<int> truelist;
     vector<int> falselist;
     int label;
+    vector<int> nextlist;
 
     void init() {
         setNextSymbol(nullptr);
@@ -34,7 +35,7 @@ class SymbolInfo {
         setRule(false);
         setFuncParamNoName(false);
         setGlobal(false);
-
+        setBool(false);
     }
 
 public:
@@ -310,5 +311,19 @@ public:
 
     int getLabel() const {
         return label;
+    }
+
+    void insertIntoNextlist(int val) {
+        nextlist.push_back(val);
+    }
+
+    void insertIntoNextlist(vector<int> list) {
+        for (int i = 0; i < list.size(); i++) {
+            insertIntoNextlist(list[i]);
+        }
+    }
+
+    vector<int> getNextlist() const {
+        return this->nextlist;
     }
 };

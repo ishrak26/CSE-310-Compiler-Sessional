@@ -495,6 +495,8 @@ compound_statement : LCURL statements RCURL {
                 st.exit_scope();
                 scopeStarted = false;
                 paramAdd = false;
+
+                $$->insertIntoNextlist($2->getNextlist());
             }
  		    | LCURL RCURL {
                 $$ = new SymbolInfo("compound_statement : LCURL RCURL ", "");
@@ -658,16 +660,21 @@ statements : statement {
             $$->setEndLine($1->getEndLine());
             $$->addTreeChild($1);
             printNewLabel();
+
+            $$->insertIntoNextlist($1->getNextlist());
         }
-	   | statements statement {
+	   | statements M statement {
             $$ = new SymbolInfo("statements : statements statement ", "");
             fprintf(logout, "%s\n", $$->getName().c_str());
             $$->setRule(true);
             $$->setStartLine($1->getStartLine());
-            $$->setEndLine($2->getEndLine());
+            $$->setEndLine($3->getEndLine());
             $$->addTreeChild($1);
-            $$->addTreeChild($2);
+            $$->addTreeChild($3);
             printNewLabel();
+
+            backpatch($1->getNextlist(), $2->getLabel());
+            $$->insertIntoNextlist($3->getNextlist());
        }
 	   ;
 	   
@@ -694,6 +701,8 @@ statement : var_declaration {
             $$->setStartLine($1->getStartLine());
             $$->setEndLine($1->getEndLine());
             $$->addTreeChild($1);
+
+            $$->insertIntoNextlist($1->getNextlist());
         }
 	  | FOR LPAREN expression_statement expression_statement expression RPAREN statement {
             $$ = new SymbolInfo("statement : FOR LPAREN expression_statement expression_statement expression RPAREN statement ", "");
@@ -709,31 +718,35 @@ statement : var_declaration {
             $$->addTreeChild($6);
             $$->addTreeChild($7);
         }
-	  | IF LPAREN expression RPAREN statement %prec THEN {
+	  | IF LPAREN expression RPAREN M statement %prec THEN {
             $$ = new SymbolInfo("statement : IF LPAREN expression RPAREN statement ", "");
             fprintf(logout, "%s\n", $$->getName().c_str());
             $$->setRule(true);
             $$->setStartLine($1->getStartLine());
-            $$->setEndLine($5->getEndLine());
+            $$->setEndLine($6->getEndLine());
             $$->addTreeChild($1);
             $$->addTreeChild($2);
             $$->addTreeChild($3);
             $$->addTreeChild($4);
-            $$->addTreeChild($5);
+            $$->addTreeChild($6);
+
+            backpatch($3->getTruelist(), $5->getLabel());
+            $$->insertIntoNextlist($3->getFalselist());
+            $$->insertIntoNextlist($6->getNextlist());
         }
-	  | IF LPAREN expression RPAREN statement ELSE statement {
+	  | IF LPAREN expression RPAREN M statement ELSE M statement {
             $$ = new SymbolInfo("statement : IF LPAREN expression RPAREN statement ELSE statement ", "");
             fprintf(logout, "%s\n", $$->getName().c_str());
             $$->setRule(true);
             $$->setStartLine($1->getStartLine());
-            $$->setEndLine($7->getEndLine());
+            $$->setEndLine($9->getEndLine());
             $$->addTreeChild($1);
             $$->addTreeChild($2);
             $$->addTreeChild($3);
             $$->addTreeChild($4);
-            $$->addTreeChild($5);
             $$->addTreeChild($6);
             $$->addTreeChild($7);
+            $$->addTreeChild($9);
         }
 	  | WHILE LPAREN expression RPAREN statement {
             $$ = new SymbolInfo("statement : WHILE LPAREN expression RPAREN statement ", "");
@@ -886,6 +899,11 @@ expression : logic_expression	{
             //     fprintf(errorout,"Line# %d: Void cannot be used in expression \n",$1->getStartLine());
             //     error_count++;
             // }
+
+            $$->setBool($1->getBool());
+            $$->insertIntoTruelist($1->getTruelist());
+            $$->insertIntoFalselist($1->getFalselist());
+
         }
 	   | variable ASSIGNOP logic_expression {
             $$ = new SymbolInfo("expression : variable ASSIGNOP logic_expression ", "");
