@@ -999,6 +999,12 @@ logic_expression : rel_expression {
                 $$->insertIntoTruelist($5->getTruelist());
                 $$->insertIntoFalselist($5->getFalselist());
             }
+            else if ($3->getName() == "&&") {
+                backpatch($1->getTruelist(), $4->getLabel());
+                $$->insertIntoTruelist($5->getTruelist());
+                $$->insertIntoFalselist($1->getFalselist());
+                $$->insertIntoFalselist($5->getFalselist());
+            }
             
             $$->setBool(true);
          }	
@@ -1191,6 +1197,14 @@ unary_expression : ADDOP unary_expression {
             }
 
             $$->setDataType($2->getDataType());
+            fprintf(tmpasmout, "\tPOP AX\n");
+            tmpLineCnt++;
+            if ($1->getName() == "-") {
+                fprintf(tmpasmout, "\tNEG AX\n");
+                tmpLineCnt++;
+            }
+            fprintf(tmpasmout, "\tPUSH AX\n");
+            tmpLineCnt++;
         }
 		 | NOT unary_expression {
             $$ = new SymbolInfo("unary_expression : NOT unary_expression ", "");
@@ -1218,6 +1232,7 @@ unary_expression : ADDOP unary_expression {
 
             $$->setDataType($1->getDataType());
             $$->setConstVal($1->getConstVal());
+
          }
 		 ;
 	
@@ -1234,6 +1249,7 @@ factor	: variable {
         fprintf(tmpasmout, "\tMOV AX, %s\n", $1->getVarName().c_str());
         fprintf(tmpasmout, "\tPUSH AX\n");
         tmpLineCnt += 2;
+
     }
 	| ID LPAREN argument_list RPAREN {
         $$ = new SymbolInfo("factor : ID LPAREN argument_list RPAREN ", "");
@@ -1339,6 +1355,12 @@ factor	: variable {
         $$->addTreeChild($2);
 
         $$->setDataType($1->getDataType());
+
+        fprintf(tmpasmout, "\tMOV AX, %s\n", $1->getVarName().c_str());
+        fprintf(tmpasmout, "\tPUSH AX\n");
+        fprintf(tmpasmout, "\tINC AX\n");
+        fprintf(tmpasmout, "\tMOV %s, AX\n", $1->getVarName().c_str());
+        tmpLineCnt += 4;
     }
 	| variable DECOP {
         $$ = new SymbolInfo("factor : variable DECOP ", "");
@@ -1350,6 +1372,12 @@ factor	: variable {
         $$->addTreeChild($2);
 
         $$->setDataType($1->getDataType());
+
+        fprintf(tmpasmout, "\tMOV AX, %s\n", $1->getVarName().c_str());
+        fprintf(tmpasmout, "\tPUSH AX\n");
+        fprintf(tmpasmout, "\tDEC AX\n");
+        fprintf(tmpasmout, "\tMOV %s, AX\n", $1->getVarName().c_str());
+        tmpLineCnt += 4;
     }
 	;
 	

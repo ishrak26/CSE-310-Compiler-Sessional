@@ -21,6 +21,15 @@ int main() {
 
 	p = n || o;
 	println(p);
+
+	p = n && o;
+	println(p);
+
+	p++;
+	println(p);
+
+	k = -p;
+	println(k);
     
     return 0;
 }
