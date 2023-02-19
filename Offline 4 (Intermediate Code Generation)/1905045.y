@@ -755,17 +755,23 @@ statement : var_declaration {
             $$->insertIntoNextlist($8->getNextlist());
             $$->insertIntoNextlist($10->getNextlist());
         }
-	  | WHILE LPAREN expression RPAREN statement {
+	  | WHILE M LPAREN expression RPAREN M statement {
             $$ = new SymbolInfo("statement : WHILE LPAREN expression RPAREN statement ", "");
             fprintf(logout, "%s\n", $$->getName().c_str());
             $$->setRule(true);
             $$->setStartLine($1->getStartLine());
-            $$->setEndLine($5->getEndLine());
+            $$->setEndLine($7->getEndLine());
             $$->addTreeChild($1);
-            $$->addTreeChild($2);
             $$->addTreeChild($3);
             $$->addTreeChild($4);
             $$->addTreeChild($5);
+            $$->addTreeChild($7);
+
+            backpatch($7->getNextlist(), $2->getLabel());
+            backpatch($4->getTruelist(), $6->getLabel());
+            $$->insertIntoNextlist($4->getFalselist());
+            fprintf(tmpasmout, "\tJMP L%d\n", $2->getLabel());
+            tmpLineCnt++;
         }
 	  | PRINTLN LPAREN ID RPAREN SEMICOLON {
             $$ = new SymbolInfo("statement : PRINTLN LPAREN ID RPAREN SEMICOLON ", "");
