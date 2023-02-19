@@ -97,6 +97,7 @@ void printNewLabel() {
 }
 
 void backpatch(vector<int> list, int label_no) {
+    // fprintf(logout, "backpatch here %d\n", label_no);
     string label = "L" + to_string(label_no);
     // cerr << "label is " << label << '\n';
     for (int i = 0; i < list.size(); i++) {
@@ -120,7 +121,7 @@ void yyerror(char *s)
 
 %token<symInfo> IF ELSE FOR WHILE INT FLOAT VOID RETURN CONST_INT CONST_FLOAT ADDOP MULOP INCOP DECOP RELOP ASSIGNOP LOGICOP NOT LPAREN RPAREN LCURL RCURL LSQUARE RSQUARE COMMA SEMICOLON ID PRINTLN
 
-%type<symInfo> start program unit var_declaration func_declaration func_definition type_specifier parameter_list compound_statement statements declaration_list statement expression_statement expression logic_expression M variable rel_expression simple_expression term unary_expression factor argument_list arguments 
+%type<symInfo> start program unit var_declaration func_declaration func_definition type_specifier parameter_list compound_statement statements declaration_list statement expression_statement expression logic_expression M N variable rel_expression simple_expression term unary_expression factor argument_list arguments 
 
 %left ADDOP
 %left MULOP
@@ -734,19 +735,25 @@ statement : var_declaration {
             $$->insertIntoNextlist($3->getFalselist());
             $$->insertIntoNextlist($6->getNextlist());
         }
-	  | IF LPAREN expression RPAREN M statement ELSE M statement {
+	  | IF LPAREN expression RPAREN M statement ELSE N M statement {
             $$ = new SymbolInfo("statement : IF LPAREN expression RPAREN statement ELSE statement ", "");
             fprintf(logout, "%s\n", $$->getName().c_str());
             $$->setRule(true);
             $$->setStartLine($1->getStartLine());
-            $$->setEndLine($9->getEndLine());
+            $$->setEndLine($10->getEndLine());
             $$->addTreeChild($1);
             $$->addTreeChild($2);
             $$->addTreeChild($3);
             $$->addTreeChild($4);
             $$->addTreeChild($6);
             $$->addTreeChild($7);
-            $$->addTreeChild($9);
+            $$->addTreeChild($10);
+
+            backpatch($3->getTruelist(), $5->getLabel());
+            backpatch($3->getFalselist(), $9->getLabel());
+            $$->insertIntoNextlist($6->getNextlist());
+            $$->insertIntoNextlist($8->getNextlist());
+            $$->insertIntoNextlist($10->getNextlist());
         }
 	  | WHILE LPAREN expression RPAREN statement {
             $$ = new SymbolInfo("statement : WHILE LPAREN expression RPAREN statement ", "");
@@ -806,6 +813,13 @@ statement : var_declaration {
             tmpLineCnt++;
         }
 	  ;
+
+N : {
+    fprintf(tmpasmout, "\tJMP \n");
+    tmpLineCnt++;
+    $$->insertIntoNextlist(tmpLineCnt);
+    // printNewLabel();
+} ;
 	  
 expression_statement 	: SEMICOLON	{
                 $$ = new SymbolInfo("expression_statement : SEMICOLON ", "");
@@ -1031,7 +1045,7 @@ logic_expression : rel_expression {
 M : {
     $$->setLabel(currLabel);
     printNewLabel();
-}
+} ;
 			
 rel_expression	: simple_expression {
             $$ = new SymbolInfo("rel_expression : simple_expression ", "");
