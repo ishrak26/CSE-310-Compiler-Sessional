@@ -18,6 +18,9 @@ int main() {
 
 	o = i != j;
 	println(o);
+
+	p = n || o;
+	println(p);
     
     return 0;
 }

@@ -25,6 +25,7 @@ class SymbolInfo {
     bool isBool;
     vector<int> truelist;
     vector<int> falselist;
+    int label;
 
     void init() {
         setNextSymbol(nullptr);
@@ -301,5 +302,13 @@ public:
 
     vector<int> getFalselist() const {
         return this->falselist;
+    }
+
+    void setLabel(int label) {
+        this->label = label;
+    }
+
+    int getLabel() const {
+        return label;
     }
 };

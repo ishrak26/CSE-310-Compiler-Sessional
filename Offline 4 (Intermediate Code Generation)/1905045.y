@@ -120,7 +120,7 @@ void yyerror(char *s)
 
 %token<symInfo> IF ELSE FOR WHILE INT FLOAT VOID RETURN CONST_INT CONST_FLOAT ADDOP MULOP INCOP DECOP RELOP ASSIGNOP LOGICOP NOT LPAREN RPAREN LCURL RCURL LSQUARE RSQUARE COMMA SEMICOLON ID PRINTLN
 
-%type<symInfo> start program unit var_declaration func_declaration func_definition type_specifier parameter_list compound_statement statements declaration_list statement expression_statement expression logic_expression variable rel_expression simple_expression term unary_expression factor argument_list arguments 
+%type<symInfo> start program unit var_declaration func_declaration func_definition type_specifier parameter_list compound_statement statements declaration_list statement expression_statement expression logic_expression M variable rel_expression simple_expression term unary_expression factor argument_list arguments 
 
 %left ADDOP
 %left MULOP
@@ -945,28 +945,69 @@ logic_expression : rel_expression {
             $$->insertIntoTruelist($1->getTruelist());
             $$->insertIntoFalselist($1->getFalselist());
         }	
-		 | rel_expression LOGICOP rel_expression {
+		 | rel_expression {
+            if (!($1->getBool())) {
+                // make it bool
+                $1->setBool(true);
+                fprintf(tmpasmout, "\tPOP AX\n");
+                fprintf(tmpasmout, "\tCMP AX, 0\n");
+                fprintf(tmpasmout, "\tJNE \n");
+                tmpLineCnt += 3;
+                $1->insertIntoTruelist(tmpLineCnt);
+                fprintf(tmpasmout, "\tJMP \n");
+                tmpLineCnt++;
+                $1->insertIntoFalselist(tmpLineCnt);
+
+            }
+         } LOGICOP M rel_expression {
+            if (!($5->getBool())) {
+                // make it bool
+                $5->setBool(true);
+                fprintf(tmpasmout, "\tPOP AX\n");
+                fprintf(tmpasmout, "\tCMP AX, 0\n");
+                fprintf(tmpasmout, "\tJNE \n");
+                tmpLineCnt += 3;
+                $5->insertIntoTruelist(tmpLineCnt);
+                fprintf(tmpasmout, "\tJMP \n");
+                tmpLineCnt++;
+                $5->insertIntoFalselist(tmpLineCnt);
+
+            }
+            
             $$ = new SymbolInfo("logic_expression : rel_expression LOGICOP rel_expression ", "");
             fprintf(logout, "%s\n", $$->getName().c_str());
             $$->setRule(true);
             $$->setStartLine($1->getStartLine());
-            $$->setEndLine($3->getEndLine());
+            $$->setEndLine($5->getEndLine());
             $$->addTreeChild($1);
-            $$->addTreeChild($2);
             $$->addTreeChild($3);
+            $$->addTreeChild($5);
 
             if ($1->getDataType() == "VOID") {
                 fprintf(errorout,"Line# %d: Void cannot be used in expression \n",$1->getStartLine());
                 error_count++;
             }
-            else if ($3->getDataType() == "VOID") {
-                fprintf(errorout,"Line# %d: Void cannot be used in expression \n",$3->getStartLine());
+            else if ($5->getDataType() == "VOID") {
+                fprintf(errorout,"Line# %d: Void cannot be used in expression \n",$5->getStartLine());
                 error_count++;
             }
             $$->setDataType("INT");
 
+            if ($3->getName() == "||") {
+                backpatch($1->getFalselist(), $4->getLabel());
+                $$->insertIntoTruelist($1->getTruelist());
+                $$->insertIntoTruelist($5->getTruelist());
+                $$->insertIntoFalselist($5->getFalselist());
+            }
+            
+            $$->setBool(true);
          }	
 		 ;
+
+M : {
+    $$->setLabel(currLabel);
+    printNewLabel();
+}
 			
 rel_expression	: simple_expression {
             $$ = new SymbolInfo("rel_expression : simple_expression ", "");
