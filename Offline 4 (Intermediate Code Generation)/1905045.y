@@ -97,7 +97,6 @@ void printNewLabel() {
 }
 
 void backpatch(vector<int> list, int label_no) {
-    fprintf(logout, "backpatch here %d\n", label_no);
     string label = "L" + to_string(label_no);
     // cerr << "label is " << label << '\n';
     for (int i = 0; i < list.size(); i++) {
@@ -722,8 +721,6 @@ statement : var_declaration {
             $$->addTreeChild($9);
             $$->addTreeChild($11);
 
-            // fprintf(logout, "%d %d %d\n", $4->getLabel(), $6->getLabel(), $9->getLabel());
-
             backpatch($11->getNextlist(), $6->getLabel());
             backpatch($5->getTruelist(), $10->getLabel());
             $$->insertIntoNextlist($5->getFalselist());
@@ -766,7 +763,22 @@ statement : var_declaration {
             $$->insertIntoNextlist($8->getNextlist());
             $$->insertIntoNextlist($10->getNextlist());
         }
-	  | WHILE M LPAREN expression RPAREN M statement {
+	  | WHILE M LPAREN expression {
+            //TODO
+            
+            if (!($4->getBool())) {
+                fprintf(tmpasmout, "\tPOP AX\n");
+                fprintf(tmpasmout, "\tCMP AX, 0\n");
+                tmpLineCnt += 2;
+                fprintf(tmpasmout, "\tJNE \n");
+                tmpLineCnt++;
+                $4->insertIntoTruelist(tmpLineCnt);
+                fprintf(tmpasmout, "\tJMP \n");
+                tmpLineCnt++;
+                $4->insertIntoFalselist(tmpLineCnt);
+            }
+
+      } RPAREN M statement {
             $$ = new SymbolInfo("statement : WHILE LPAREN expression RPAREN statement ", "");
             fprintf(logout, "%s\n", $$->getName().c_str());
             $$->setRule(true);
@@ -775,11 +787,11 @@ statement : var_declaration {
             $$->addTreeChild($1);
             $$->addTreeChild($3);
             $$->addTreeChild($4);
-            $$->addTreeChild($5);
-            $$->addTreeChild($7);
+            $$->addTreeChild($6);
+            $$->addTreeChild($8);
 
-            backpatch($7->getNextlist(), $2->getLabel());
-            backpatch($4->getTruelist(), $6->getLabel());
+            backpatch($8->getNextlist(), $2->getLabel());
+            backpatch($4->getTruelist(), $7->getLabel());
             $$->insertIntoNextlist($4->getFalselist());
             fprintf(tmpasmout, "\tJMP L%d\n", $2->getLabel());
             tmpLineCnt++;
