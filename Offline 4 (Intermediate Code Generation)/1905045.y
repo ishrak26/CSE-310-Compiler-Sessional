@@ -97,7 +97,7 @@ void printNewLabel() {
 }
 
 void backpatch(vector<int> list, int label_no) {
-    // fprintf(logout, "backpatch here %d\n", label_no);
+    fprintf(logout, "backpatch here %d\n", label_no);
     string label = "L" + to_string(label_no);
     // cerr << "label is " << label << '\n';
     for (int i = 0; i < list.size(); i++) {
@@ -705,19 +705,30 @@ statement : var_declaration {
 
             $$->insertIntoNextlist($1->getNextlist());
         }
-	  | FOR LPAREN expression_statement expression_statement expression RPAREN statement {
+	  | FOR LPAREN expression_statement M expression_statement M expression {
+            fprintf(tmpasmout, "\tJMP L%d\n", $4->getLabel());
+            tmpLineCnt++;
+      } RPAREN M statement {
             $$ = new SymbolInfo("statement : FOR LPAREN expression_statement expression_statement expression RPAREN statement ", "");
             fprintf(logout, "%s\n", $$->getName().c_str());
             $$->setRule(true);
             $$->setStartLine($1->getStartLine());
-            $$->setEndLine($7->getEndLine());
+            $$->setEndLine($11->getEndLine());
             $$->addTreeChild($1);
             $$->addTreeChild($2);
             $$->addTreeChild($3);
-            $$->addTreeChild($4);
             $$->addTreeChild($5);
-            $$->addTreeChild($6);
             $$->addTreeChild($7);
+            $$->addTreeChild($9);
+            $$->addTreeChild($11);
+
+            // fprintf(logout, "%d %d %d\n", $4->getLabel(), $6->getLabel(), $9->getLabel());
+
+            backpatch($11->getNextlist(), $6->getLabel());
+            backpatch($5->getTruelist(), $10->getLabel());
+            $$->insertIntoNextlist($5->getFalselist());
+            fprintf(tmpasmout, "\tJMP L%d\n", $6->getLabel());
+            tmpLineCnt++;
         }
 	  | IF LPAREN expression RPAREN M statement %prec THEN {
             $$ = new SymbolInfo("statement : IF LPAREN expression RPAREN statement ", "");
@@ -821,6 +832,7 @@ statement : var_declaration {
 	  ;
 
 N : {
+    $$ = new SymbolInfo();
     fprintf(tmpasmout, "\tJMP \n");
     tmpLineCnt++;
     $$->insertIntoNextlist(tmpLineCnt);
@@ -845,6 +857,10 @@ expression_statement 	: SEMICOLON	{
                 $$->addTreeChild($2);
                 fprintf(tmpasmout, "\tPOP AX\n");
                 tmpLineCnt++;
+
+                $$->insertIntoTruelist($1->getTruelist());
+                $$->insertIntoFalselist($1->getFalselist());
+                $$->insertIntoNextlist($1->getNextlist());
             }
 			;
 	  
@@ -1049,6 +1065,7 @@ logic_expression : rel_expression {
 		 ;
 
 M : {
+    $$ = new SymbolInfo();
     $$->setLabel(currLabel);
     printNewLabel();
 } ;
