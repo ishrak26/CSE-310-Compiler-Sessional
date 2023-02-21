@@ -1740,7 +1740,7 @@ argument_list : arguments {
                 $$->addTreeChild($1);
             }
 			  | {
-                $$ = new SymbolInfo("argument_list : arguments ", "");
+                $$ = new SymbolInfo("argument_list : ", "");
                 fprintf(logout, "%s\n", $$->getName().c_str());
                 $$->setRule(true);
                 $$->setStartLine(line_count);
@@ -1770,7 +1770,21 @@ arguments : arguments COMMA logic_expression {
 
                 currentArgs.push_back($1);
 
-                
+                if ($1->getBool()) {
+                    // backpatch
+                    backpatch($1->getTruelist(), currLabel);
+                    printNewLabel();
+                    fprintf(tmpasmout, "\tMOV AX, 1\n");
+                    fprintf(tmpasmout, "\tJMP L%d\n", currLabel+1);
+                    tmpLineCnt += 2;
+                    backpatch($1->getFalselist(), currLabel);
+                    printNewLabel();
+                    fprintf(tmpasmout, "\tMOV AX, 0\n");
+                    tmpLineCnt++;
+                    printNewLabel();
+                    fprintf(tmpasmout, "\tPUSH AX\n");
+                    tmpLineCnt++;
+                }
             }
 	      ;
  
