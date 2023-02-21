@@ -16,6 +16,9 @@ int main() {
 	int a;
 	a = func(7);
 	println(a);
+
+	a = a--;
+
 	return 0;
 }
 

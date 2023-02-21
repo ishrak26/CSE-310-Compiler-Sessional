@@ -115,6 +115,8 @@ void write_optimized_assembly(char *filename) {
         }
         str.first.assign(cstr);
         str.second = true;
+
+        // check consecutive push pop
         pos = str.first.find("POP");
         if (pos != string::npos) {
             // pop found
@@ -127,6 +129,72 @@ void write_optimized_assembly(char *filename) {
                 // consecutive push pop found
                 str2.second = false;
                 str.second = false;
+            }
+        }
+        else {
+            // check add ..., 0
+            pos = str.first.find("ADD");
+            if (pos != string::npos) {
+                // add found
+                // find value to add
+                int pos2 = str.first.find(",");
+                string val = str.first.substr(pos2+2, 2);
+                if (val == "0\n") {
+                    str.second = false;
+                }
+            }
+            else {
+                // check sub ..., 0
+                pos = str.first.find("SUB");
+                if (pos != string::npos) {
+                    // sub found
+                    // find value to sub
+                    int pos2 = str.first.find(",");
+                    string val = str.first.substr(pos2+2, 2);
+                    if (val == "0\n") {
+                        str.second = false;
+                    }
+                }
+                else {
+                    // check imul ..., 1
+                    pos = str.first.find("IMUL");
+                    if (pos != string::npos) {
+                        // imul found
+                        // find value to imul
+                        int pos2 = str.first.find(",");
+                        string val = str.first.substr(pos2+2, 2);
+                        if (val == "1\n") {
+                            str.second = false;
+                        }
+                    }
+                    else {
+                        // check mov a, ax and then mov ax, a
+                        pos = str.first.find("MOV");
+                        if (pos != string::npos) {
+                            // mov found
+                            int pos2 = str2.first.find("MOV");
+                            if (pos2 != string::npos) {
+                                string val1, val2, val3, val4;
+                                int pos3 = str.first.find(" ");
+                                int pos4 = str.first.find(",");
+                                int pos5 = str.first.find("\n");
+                                val1 = str.first.substr(pos3+1, pos4-(pos3+1));
+                                val2 = str.first.substr(pos4+2, pos5-(pos4+2));
+
+                                pos3 = str2.first.find(" ");
+                                pos4 = str2.first.find(",");
+                                pos5 = str2.first.find("\n");
+                                val3 = str2.first.substr(pos3+1, pos4-(pos3+1));
+                                val4 = str2.first.substr(pos4+2, pos5-(pos4+2));
+
+                                if (val1 == val4 && val2 == val3) {
+                                    str2.second = false;
+                                    str.second = false;
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
         
@@ -1587,37 +1655,46 @@ arguments : arguments COMMA logic_expression {
 %%
 int main(int argc,char *argv[])
 {
-    
+    if (argc < 4) {
+        printf("Please enter input filename, assembly output filename, optimized assembly output filename\n");
+		exit(1);
+    }
+
 	if((fp=fopen(argv[1],"r"))==NULL)
 	{
 		printf("Cannot Open Input File.\n");
 		exit(1);
 	}
 
-	parseout= fopen(argv[2],"w");
+    char parse_filename[20] = "1905045_parse.txt";
+    char log_filename[20] = "1905045_log.txt";
+    char error_filename[20] = "1905045_error.txt";
+    char tmpasm_filename[30] = "1905045_tmp_i_code.asm";
+
+	parseout= fopen(parse_filename,"w");
 	fclose(parseout);
-    errorout= fopen(argv[3],"w");
+    errorout= fopen(error_filename,"w");
 	fclose(errorout);
-	logout= fopen(argv[4],"w");
+	logout= fopen(log_filename,"w");
 	fclose(logout);
-    asmout= fopen(argv[5],"w");
+    asmout= fopen(argv[2],"w");
     fclose(asmout);
-    optasmout= fopen(argv[6],"w");
+    optasmout= fopen(argv[3],"w");
     fclose(optasmout);
-    tmpasmout= fopen("tmp_test_i_code.asm","w");
+    tmpasmout= fopen(tmpasm_filename,"w");
 	fclose(tmpasmout);
 	
-	parseout= fopen(argv[2],"a");
-    errorout= fopen(argv[3],"a");
-	logout= fopen(argv[4],"a");
-    asmout= fopen(argv[5],"a");
-    optasmout= fopen(argv[6],"a");
-    tmpasmout = fopen("tmp_test_i_code.asm","a");
+	parseout= fopen(parse_filename,"a");
+    errorout= fopen(error_filename,"a");
+	logout= fopen(log_filename,"a");
+    asmout= fopen(argv[2],"a");
+    optasmout= fopen(argv[3],"a");
+    tmpasmout = fopen(tmpasm_filename,"a");
 
 	yyin=fp;
 	yyparse();
 
-    write_optimized_assembly(argv[5]);
+    write_optimized_assembly(argv[2]);
 	
     fprintf(logout, "Total Lines: %d\n", line_count);
     fprintf(logout, "Total Errors: %d\n", error_count);
