@@ -1319,6 +1319,10 @@ rel_expression	: simple_expression {
             $$->addTreeChild($1);
 
             $$->setDataType($1->getDataType());
+
+            $$->setBool($1->getBool());
+            $$->insertIntoTruelist($1->getTruelist());
+            $$->insertIntoFalselist($1->getFalselist());
         }
 		| simple_expression RELOP simple_expression	{
             $$ = new SymbolInfo("rel_expression : simple_expression RELOP simple_expression ", "");
@@ -1381,6 +1385,10 @@ simple_expression : term {
             $$->addTreeChild($1);
 
             $$->setDataType($1->getDataType());
+
+            $$->setBool($1->getBool());
+            $$->insertIntoTruelist($1->getTruelist());
+            $$->insertIntoFalselist($1->getFalselist());
         }
 		  | simple_expression ADDOP term {
             $$ = new SymbolInfo("simple_expression : simple_expression ADDOP term ", "");
@@ -1426,6 +1434,10 @@ term :	unary_expression {
 
             $$->setDataType($1->getDataType());
             $$->setConstVal($1->getConstVal());
+
+            $$->setBool($1->getBool());
+            $$->insertIntoTruelist($1->getTruelist());
+            $$->insertIntoFalselist($1->getFalselist());
         }
      |  term MULOP unary_expression {
             $$ = new SymbolInfo("term : term MULOP unary_expression ", "");
@@ -1516,6 +1528,24 @@ unary_expression : ADDOP unary_expression {
             }
 
             $$->setDataType($2->getDataType());
+
+            if (!($2->getBool())) {
+                // make it bool
+                $$->setBool(true);
+                fprintf(tmpasmout, "\tPOP AX\n");
+                fprintf(tmpasmout, "\tCMP AX, 0\n");
+                fprintf(tmpasmout, "\tJNE \n");
+                tmpLineCnt += 3;
+                $$->insertIntoFalselist(tmpLineCnt);
+                fprintf(tmpasmout, "\tJMP \n");
+                tmpLineCnt++;
+                $$->insertIntoTruelist(tmpLineCnt);
+            }
+            else {
+                $$->setBool(true);
+                $$->insertIntoTruelist($2->getFalselist());
+                $$->insertIntoFalselist($2->getTruelist());
+            }
          }
 		 | factor {
             $$ = new SymbolInfo("unary_expression : factor ", "");
@@ -1622,6 +1652,10 @@ factor	: variable {
         else {
             $$->setDataType($2->getDataType());
         }
+
+        $$->setBool($2->getBool());
+        $$->insertIntoTruelist($2->getFalselist());
+        $$->insertIntoFalselist($2->getTruelist());
     }
 	| CONST_INT {
         $$ = new SymbolInfo("factor : CONST_INT ", "");

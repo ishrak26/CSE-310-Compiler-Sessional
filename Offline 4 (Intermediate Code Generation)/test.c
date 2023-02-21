@@ -3,6 +3,12 @@ int i, b[10], j;
 int main(){
  
 	int k,a[3],ll,m,n,o,p;
+
+  p = !(m<=n);
+  println(p);
+
+  p = !m;
+  println(p);
  
 	i = 1;
 	println(i);
@@ -22,6 +28,9 @@ int main(){
  
 	p = n || o;
 	println(p);
+
+  p = !p;
+  println(p);
  
 	p = n && o;
 	println(p);
