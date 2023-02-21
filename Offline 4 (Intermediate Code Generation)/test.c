@@ -1,40 +1,46 @@
-int a,b,c;
-
-void func_a(){
-	a = 7;
+int f(int a){
+	int k;
+	k = 5;
+	while(k>0){
+		a++;
+		k--;
+	}
+    return 3*a - 7;
+    a=9;
 }
 
-int foo(int a){
-	a = a + 3;
-	return a;
-}
-
-
-int bar(int a, int b){	
-	c = 4*a + 2*b;
-	return c;
+int g(int a, int b){
+	
+    int x,i;
+    x=f(a)+a+b;
+    
+    for(i=0;i<7;i++){
+    	if(i%3 == 0){
+    		x = x+5;
+    	}
+    	else{
+    		x = x-1;
+    	}
+    }
+    
+    return x;
 }
 
 int main(){
- 
-	int i,j,k,l;
-	
-	i = 5;
-	j = 6;
-	
-	func_a();
-	println(a);
-	
-	k = foo(i);
-	println(k);
-	
-	l = bar(i,j);
-	println(l);
-	
-	j = 6 * bar(i,j) + 2 - 3 * foo(i);
-	println(j);
-	
- 
-	return 0;
+    int a,b,i;
+    a=1;
+    b=2;
+    a=g(a,b);
+    println(a);
+    for(i=0;i<4;i++){
+        a=3;
+        while(a>0){
+            b++;
+            a--;
+        }
+    }
+    println(a);
+    println(b);
+    println( i);
+    return 0;
 }
-

@@ -47,6 +47,7 @@ vector<SymbolInfo*> currentVars;
 vector<SymbolInfo*> currentParams;
 vector<SymbolInfo*> currentArgs;
 vector<SymbolInfo*> globalVars;
+vector<int> returnLineList;
 bool scopeStarted = false;
 bool paramAdd = false;
 bool paramOn = false;
@@ -320,6 +321,9 @@ func_definition : type_specifier ID LPAREN parameter_list RPAREN {
                 } 
                 currFuncReturn = false;
                 
+                backpatch(returnLineList, currLabel);
+                printNewLabel();
+                returnLineList.clear();
                 fprintf(tmpasmout, "\tADD SP, %d\n", currStackOffset);
                 fprintf(tmpasmout, "\tPOP BP\n");
                 fprintf(tmpasmout, "\tRET %d\n", (int)(currentParams.size())*2);
@@ -383,6 +387,10 @@ func_definition : type_specifier ID LPAREN parameter_list RPAREN {
                     error_count++;
                 } 
                 currFuncReturn = false;
+
+                backpatch(returnLineList, currLabel);
+                printNewLabel();
+                returnLineList.clear();
                 fprintf(tmpasmout, "\tADD SP, %d\n", currStackOffset);
                 fprintf(tmpasmout, "\tPOP BP\n");
 
@@ -730,6 +738,8 @@ statement : var_declaration {
             $$->insertIntoNextlist($1->getNextlist());
         }
 	  | FOR LPAREN expression_statement M expression_statement M expression {
+            fprintf(tmpasmout, "\tPOP AX\n");
+            tmpLineCnt++;
             fprintf(tmpasmout, "\tJMP L%d\n", $4->getLabel());
             tmpLineCnt++;
       } RPAREN M statement {
@@ -863,6 +873,9 @@ statement : var_declaration {
             returnStartLine = $1->getStartLine();
             fprintf(tmpasmout, "\tPOP AX\n");
             tmpLineCnt++;
+            fprintf(tmpasmout, "\tJMP \n");
+            tmpLineCnt++;
+            returnLineList.push_back(tmpLineCnt);
         }
 	  ;
 
