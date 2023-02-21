@@ -21,6 +21,8 @@ FILE *tmpasmout;
 FILE *asmout;
 FILE *optasmout;
 
+char tmpasm_filename[30] = "1905045_tmp_i_code.asm";
+
 int line_count = 1;
 int error_count = 0;
 int currLabel = 1;
@@ -75,7 +77,7 @@ void write_final_assembly() {
     fprintf(asmout, ".CODE\n");
 
     fclose(tmpasmout);
-    tmpasmout = fopen("tmp_test_i_code.asm","r");
+    tmpasmout = fopen(tmpasm_filename,"r");
     char cstr[100];
     int line_no = 1;
     while (fgets(cstr, 95, tmpasmout)) {
@@ -1269,9 +1271,9 @@ rel_expression	: simple_expression {
             $$->setDataType("INT");
 
             $$->setBool(true);
-            fprintf(tmpasmout, "\tPOP BX\n");
             fprintf(tmpasmout, "\tPOP AX\n");
-            fprintf(tmpasmout, "\tCMP AX, BX\n");
+            fprintf(tmpasmout, "\tPOP BX\n");
+            fprintf(tmpasmout, "\tCMP BX, AX\n");
             tmpLineCnt += 3;
             if ($2->getName() == "<") {
                 fprintf(tmpasmout, "\tJL \n");
@@ -1669,7 +1671,6 @@ int main(int argc,char *argv[])
     char parse_filename[20] = "1905045_parse.txt";
     char log_filename[20] = "1905045_log.txt";
     char error_filename[20] = "1905045_error.txt";
-    char tmpasm_filename[30] = "1905045_tmp_i_code.asm";
 
 	parseout= fopen(parse_filename,"w");
 	fclose(parseout);
