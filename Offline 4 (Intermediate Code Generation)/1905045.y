@@ -71,7 +71,12 @@ void write_final_assembly() {
     // insert the global variables
     for (int i = 0; i < globalVars.size(); i++) {
         SymbolInfo* symInfo = globalVars[i];
-        fprintf(asmout, "\t%s DW 1 (0000H)\n", symInfo->getName().c_str());
+        if (symInfo->getArray()) {
+            fprintf(asmout, "\t%s DW %d DUP (0)\n", symInfo->getName().c_str(), symInfo->getArraySize());
+        }
+        else {
+            fprintf(asmout, "\t%s DW 1 (0000H)\n", symInfo->getName().c_str());
+        }
     }
 
     fprintf(asmout, ".CODE\n");
@@ -1010,7 +1015,12 @@ statement : var_declaration {
                 fprintf(tmpasmout, "\tPOP AX\n"); // expression
                 fprintf(tmpasmout, "\tLEA SI, %s\n", symInfo->getVarName().c_str());
                 fprintf(tmpasmout, "\tSHL AX, 1\n");
-                fprintf(tmpasmout, "\tSUB SI, AX\n");
+                if (symInfo->getGlobal()) {
+                    fprintf(tmpasmout, "\tADD SI, AX\n");
+                }
+                else {
+                    fprintf(tmpasmout, "\tSUB SI, AX\n");
+                }
                 fprintf(tmpasmout, "\tMOV AX, [SI]\n");
                 fprintf(tmpasmout, "\tCALL print_output\n");
                 fprintf(tmpasmout, "\tCALL new_line\n");
@@ -1132,7 +1142,12 @@ variable : ID {
             fprintf(tmpasmout, "\tPOP AX\n"); // expression
             fprintf(tmpasmout, "\tLEA SI, %s\n", symInfo->getVarName().c_str());
             fprintf(tmpasmout, "\tSHL AX, 1\n");
-            fprintf(tmpasmout, "\tSUB SI, AX\n");
+            if (symInfo->getGlobal()) {
+                fprintf(tmpasmout, "\tADD SI, AX\n");
+            }
+            else {
+                fprintf(tmpasmout, "\tSUB SI, AX\n");
+            }
             fprintf(tmpasmout, "\tPUSH SI\n");
             tmpLineCnt += 5;
 

@@ -1,4 +1,5 @@
-int i,j;
+int i, b[10], j;
+
 int main(){
  
 	int k,a[3],ll,m,n,o,p;
@@ -40,6 +41,19 @@ int main(){
   a[0] = a[1] + a[2];
   println(a[0]);
   
+  b[0] = b[1] + b[2];
+  println(b[0]);
+
+  for (i = 0; i < 10; i++) {
+    b[i] = i * 2;
+    println(b[i]);
+  }
+
+  for (i = 0; i < 3; i++) {
+    b[i] = a[i];
+    println(b[i]);
+  }
+
 	return 0;
 }
 
