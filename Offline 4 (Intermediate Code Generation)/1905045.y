@@ -677,6 +677,7 @@ var_declaration : type_specifier declaration_list SEMICOLON {
                 fprintf(logout, "%s\n", $$->getName().c_str());
                 
                 int table_no, idx, pos;
+                int flag = 0;
                 for (int i = 0; i < int(currentVars.size()); i++) {
                     if ($1->getType() == "VOID") {
                         fprintf(errorout,"Line# %d: Variable or field \'%s\' declared void\n",currentVars[i]->getStartLine(),currentVars[i]->getName().c_str());
@@ -710,6 +711,9 @@ var_declaration : type_specifier declaration_list SEMICOLON {
                                 globalVars.push_back(symInfo);
                             }
                             else {
+                                if (!flag) {
+                                    flag = 1; // to see if at least one local variable was declared here
+                                }
                                 symInfo->setGlobal(false);
                                 if (symInfo->getArray()) {
                                     int arraySize = symInfo->getArraySize();
@@ -733,6 +737,7 @@ var_declaration : type_specifier declaration_list SEMICOLON {
                         }
                     }
                 }
+                
                 currentVars.clear();
                 $$->setRule(true);
                 $$->setStartLine($1->getStartLine());
@@ -740,6 +745,10 @@ var_declaration : type_specifier declaration_list SEMICOLON {
                 $$->addTreeChild($1);
                 $$->addTreeChild($2);
                 $$->addTreeChild($3);
+                if (flag) {
+                    fprintf(tmpasmout, "\t; local variable declaration at line <%d - %d>\n", $1->getStartLine(), $3->getEndLine());
+                    tmpLineCnt++;
+                }
             }
  		 ;
  		 
@@ -989,6 +998,8 @@ statement : var_declaration {
                 fprintf(tmpasmout, "\tCALL new_line\n");
                 tmpLineCnt += 3;
             }
+            fprintf(tmpasmout, "\t; print variable at line <%d - %d>\n", $$->getStartLine(), $$->getEndLine());
+            tmpLineCnt++;
         }
         | PRINTLN LPAREN ID LSQUARE expression RSQUARE RPAREN SEMICOLON {
             $$ = new SymbolInfo("statement : PRINTLN LPAREN ID LSQUARE expression RSQUARE RPAREN SEMICOLON ", "");
@@ -1026,6 +1037,8 @@ statement : var_declaration {
                 fprintf(tmpasmout, "\tCALL new_line\n");
                 tmpLineCnt += 7;
             }
+            fprintf(tmpasmout, "\t; print array variable at line <%d - %d>\n", $$->getStartLine(), $$->getEndLine());
+            tmpLineCnt++;
         }
 	  | RETURN expression SEMICOLON {
             $$ = new SymbolInfo("statement : RETURN expression SEMICOLON ", "");
@@ -1049,6 +1062,8 @@ statement : var_declaration {
             fprintf(tmpasmout, "\tJMP \n");
             tmpLineCnt++;
             returnLineList.push_back(tmpLineCnt);
+            fprintf(tmpasmout, "\t; return statement at line <%d - %d>\n", $$->getStartLine(), $$->getEndLine());
+            tmpLineCnt++;
         }
 	  ;
 
@@ -1222,7 +1237,10 @@ expression : logic_expression	{
                 fprintf(tmpasmout, "\tPUSH AX\n");
                 tmpLineCnt += 2;
             }
-        }	
+            fprintf(tmpasmout, "\t; variable assignment at line <%d - %d>\n", $$->getStartLine(), $$->getEndLine());
+            tmpLineCnt++;	
+        }
+        
 	   ;
 			
 logic_expression : rel_expression {
@@ -1373,6 +1391,8 @@ rel_expression	: simple_expression {
             fprintf(tmpasmout, "\tJMP \n");
             tmpLineCnt++;
             $$->insertIntoFalselist(tmpLineCnt);
+
+            
         }
 		;
 				
