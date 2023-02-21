@@ -1777,6 +1777,22 @@ arguments : arguments COMMA logic_expression {
                 $$->addTreeChild($3);
 
                 currentArgs.push_back($3);
+
+                if ($3->getBool()) {
+                    // backpatch
+                    backpatch($3->getTruelist(), currLabel);
+                    printNewLabel();
+                    fprintf(tmpasmout, "\tMOV AX, 1\n");
+                    fprintf(tmpasmout, "\tJMP L%d\n", currLabel+1);
+                    tmpLineCnt += 2;
+                    backpatch($3->getFalselist(), currLabel);
+                    printNewLabel();
+                    fprintf(tmpasmout, "\tMOV AX, 0\n");
+                    tmpLineCnt++;
+                    printNewLabel();
+                    fprintf(tmpasmout, "\tPUSH AX\n");
+                    tmpLineCnt++;
+                }
             }
 	      | logic_expression {
                 $$ = new SymbolInfo("arguments : logic_expression ", "");
