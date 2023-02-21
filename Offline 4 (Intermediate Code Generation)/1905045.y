@@ -258,6 +258,9 @@ func_definition : type_specifier ID LPAREN parameter_list RPAREN {
                     currStackOffset = 0;
                     fprintf(tmpasmout, "%s PROC\n", $2->getName().c_str());
                     tmpLineCnt++;
+                    fprintf(tmpasmout, "\tPUSH BP\n");
+                    fprintf(tmpasmout, "\tMOV BP, SP\n");
+                    tmpLineCnt += 2;
                 } compound_statement {
                 $$ = new SymbolInfo("func_definition : type_specifier ID LPAREN parameter_list RPAREN compound_statement ", "");
                 fprintf(logout, "%s\n", $$->getName().c_str());
@@ -301,13 +304,22 @@ func_definition : type_specifier ID LPAREN parameter_list RPAREN {
                     }
                     $2->addFuncParam(currentParams[i]);
                 }
-                currentParams.clear();
+                
 
                 if (currFuncReturn && $1->getType() == "VOID") {
                     fprintf(errorout,"Line# %d: Return from a void function\n",returnStartLine);
                     error_count++;
                 } 
                 currFuncReturn = false;
+                
+                fprintf(tmpasmout, "\tADD SP, %d\n", currStackOffset);
+                fprintf(tmpasmout, "\tPOP BP\n");
+                fprintf(tmpasmout, "\tRET %d\n", (int)(currentParams.size())*2);
+                
+                currentParams.clear();
+                
+                tmpLineCnt += 3;
+                
                 currStackOffset = -1;
                 
                 fprintf(tmpasmout, "%s ENDP\n", $2->getName().c_str());
@@ -365,12 +377,17 @@ func_definition : type_specifier ID LPAREN parameter_list RPAREN {
                 currFuncReturn = false;
                 fprintf(tmpasmout, "\tADD SP, %d\n", currStackOffset);
                 fprintf(tmpasmout, "\tPOP BP\n");
+
                 tmpLineCnt += 2;
                 currStackOffset = -1;
                 if ($2->getName() == "main") {
                     fprintf(tmpasmout, "\tMOV AX,4CH\n");
                     fprintf(tmpasmout, "\tINT 21H\n");
                     tmpLineCnt += 2;
+                }
+                else {
+                    fprintf(tmpasmout, "\tRET \n");
+                    tmpLineCnt++;
                 }
                 fprintf(tmpasmout, "%s ENDP\n", $2->getName().c_str());
                 tmpLineCnt++;
@@ -400,6 +417,10 @@ parameter_list  : parameter_list COMMA type_specifier ID {
                 }
             }
             currentParams.push_back($4);
+            int idx, pos, table_no;
+            SymbolInfo* symInfo = st.look_up($4->getName(), idx, pos, table_no);
+            string varName = "[BP+" + to_string((int)(currentParams.size())*2 + 2) + "]";
+            symInfo->setVarName(varName);
             
         }
 		| parameter_list COMMA type_specifier {
@@ -452,6 +473,11 @@ parameter_list  : parameter_list COMMA type_specifier ID {
             
             currentParams.push_back($2);
             paramOn = true;
+
+            int idx, pos, table_no;
+            SymbolInfo* symInfo = st.look_up($2->getName(), idx, pos, table_no);
+            string varName = "[BP+" + to_string((int)(currentParams.size())*2 + 2) + "]";
+            symInfo->setVarName(varName);
         }
 		| type_specifier {
             st.enter_scope();
@@ -764,8 +790,6 @@ statement : var_declaration {
             $$->insertIntoNextlist($10->getNextlist());
         }
 	  | WHILE M LPAREN expression {
-            //TODO
-            
             if (!($4->getBool())) {
                 fprintf(tmpasmout, "\tPOP AX\n");
                 fprintf(tmpasmout, "\tCMP AX, 0\n");
