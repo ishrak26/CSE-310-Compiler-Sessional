@@ -1558,6 +1558,10 @@ unary_expression : ADDOP unary_expression {
             $$->setDataType($1->getDataType());
             $$->setConstVal($1->getConstVal());
 
+            $$->setBool($1->getBool());
+            $$->insertIntoTruelist($1->getFalselist());
+            $$->insertIntoFalselist($1->getTruelist());
+
          }
 		 ;
 	

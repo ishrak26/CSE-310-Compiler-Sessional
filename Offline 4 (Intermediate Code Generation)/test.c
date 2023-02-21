@@ -9,6 +9,9 @@ int main(){
 
   p = !m;
   println(p);
+
+  p = !p;
+  println(p);
  
 	i = 1;
 	println(i);
