@@ -75,7 +75,7 @@ void write_final_assembly() {
             fprintf(asmout, "\t%s DW %d DUP (0)\n", symInfo->getName().c_str(), symInfo->getArraySize());
         }
         else {
-            fprintf(asmout, "\t%s DW 1 (0000H)\n", symInfo->getName().c_str());
+            fprintf(asmout, "\t%s DW 0\n", symInfo->getName().c_str());
         }
     }
 

@@ -1,5 +1,7 @@
 %option noyywrap
 
+%x MULTI_LINE_COMMENT
+
 %{
 #include<cstdio>
 #include<cstdlib>
@@ -23,6 +25,14 @@ extern bool paramOn;
 extern YYSTYPE yylval;
 void yyerror(char *);
 
+void handle_newlines(string &str) {
+	for (int i = 0; i < str.length(); i++) {
+		if (str[i] == '\n') {
+			line_count++;
+		}
+	}
+}
+
 %}
 
 WHITESPACE [ \t\f\r\v]+ 
@@ -36,6 +46,45 @@ NEWLINE \n
 }
 
 {WHITESPACE} {}
+
+ /* single-line comment */
+\/\/[^\n]*|\/\/([^\n]*\\{NEWLINE})+[^\n]* {
+			fprintf(logout,"Line# %d: Token <SINGLE LINE COMMENT> Lexeme %s found\n",line_count,yytext);
+			string str = string(yytext);
+			handle_newlines(str);
+        }
+
+ /* multi-line comment */
+\/\*[ -~\n\r\t\b\v\\]*\*\/ {
+			fprintf(logout,"Line# %d: Token <MULTI LINE COMMENT> Lexeme %s found\n",line_count,yytext);
+			string str = string(yytext);
+			handle_newlines(str);
+        }
+
+\/\* {
+			BEGIN(MULTI_LINE_COMMENT);
+			fprintf(logout,"Error at line# %d: UNFINISHED COMMENT %s",line_count,yytext);
+			error_count++;
+			// cerr << __LINE__ << ' ' << __FILE__ << '\n';
+		}
+
+<MULTI_LINE_COMMENT><<EOF>> {
+			fprintf(logout,"%s\n",yytext);
+			
+			string str = string(yytext);
+			handle_newlines(str);
+			// yyterminate();
+			BEGIN(INITIAL);
+		}
+
+<MULTI_LINE_COMMENT>[ -~\n\r\t\b\v\\] {
+			// cerr << "multi line comment ongoing\n";
+			fprintf(logout,"%s",yytext);
+			string str = string(yytext);
+			if (str[0] == '\n') {
+				line_count++;
+			}
+		}
 
  /* keywords */
 "if"	{
