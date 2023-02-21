@@ -1237,8 +1237,6 @@ expression : logic_expression	{
                 fprintf(tmpasmout, "\tPUSH AX\n");
                 tmpLineCnt += 2;
             }
-            fprintf(tmpasmout, "\t; variable assignment at line <%d - %d>\n", $$->getStartLine(), $$->getEndLine());
-            tmpLineCnt++;	
         }
         
 	   ;
@@ -1619,7 +1617,7 @@ factor	: variable {
         SymbolInfo* symInfo = st.look_up($1->getName(), idx, pos, table_no);
         if (symInfo == nullptr) {
             // not found
-            fprintf(errorout,"Line# %d: Undeclared function \'%s\'\n",$1->getStartLine(),$1->getName().c_str());
+            fprintf(errorout,"Line# %d: Warning: Undeclared function / Recursive function \'%s\'\n",$1->getStartLine(),$1->getName().c_str());
             error_count++;
         }
         else {
