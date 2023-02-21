@@ -1009,11 +1009,12 @@ statement : var_declaration {
             else {
                 fprintf(tmpasmout, "\tPOP AX\n"); // expression
                 fprintf(tmpasmout, "\tLEA SI, %s\n", symInfo->getVarName().c_str());
-                fprintf(tmpasmout, "\tADD SI, AX\n");
+                fprintf(tmpasmout, "\tSHL AX, 1\n");
+                fprintf(tmpasmout, "\tSUB SI, AX\n");
                 fprintf(tmpasmout, "\tMOV AX, [SI]\n");
                 fprintf(tmpasmout, "\tCALL print_output\n");
                 fprintf(tmpasmout, "\tCALL new_line\n");
-                tmpLineCnt += 6;
+                tmpLineCnt += 7;
             }
         }
 	  | RETURN expression SEMICOLON {
@@ -1130,9 +1131,10 @@ variable : ID {
             $$->setDataType(symInfo->getDataType());
             fprintf(tmpasmout, "\tPOP AX\n"); // expression
             fprintf(tmpasmout, "\tLEA SI, %s\n", symInfo->getVarName().c_str());
-            fprintf(tmpasmout, "\tADD SI, AX\n");
+            fprintf(tmpasmout, "\tSHL AX, 1\n");
+            fprintf(tmpasmout, "\tSUB SI, AX\n");
             fprintf(tmpasmout, "\tPUSH SI\n");
-            tmpLineCnt += 4;
+            tmpLineCnt += 5;
 
             $$->setVarName("[SI]");
             $$->setArray(true);
