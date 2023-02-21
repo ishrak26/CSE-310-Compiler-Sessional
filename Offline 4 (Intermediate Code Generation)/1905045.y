@@ -261,6 +261,13 @@ func_definition : type_specifier ID LPAREN parameter_list RPAREN {
                     fprintf(tmpasmout, "\tPUSH BP\n");
                     fprintf(tmpasmout, "\tMOV BP, SP\n");
                     tmpLineCnt += 2;
+
+                    int table_no, idx, pos;
+                    for (int i = (int)(currentParams.size())-1, j = 4; i >= 0; i--, j += 2) {
+                        SymbolInfo* symInfo = st.look_up(currentParams[i]->getName(), idx, pos, table_no);
+                        string varName = "[BP+" + to_string(j) + "]";
+                        symInfo->setVarName(varName);
+                    }
                 } compound_statement {
                 $$ = new SymbolInfo("func_definition : type_specifier ID LPAREN parameter_list RPAREN compound_statement ", "");
                 fprintf(logout, "%s\n", $$->getName().c_str());
@@ -304,6 +311,7 @@ func_definition : type_specifier ID LPAREN parameter_list RPAREN {
                     }
                     $2->addFuncParam(currentParams[i]);
                 }
+
                 
 
                 if (currFuncReturn && $1->getType() == "VOID") {
@@ -417,10 +425,6 @@ parameter_list  : parameter_list COMMA type_specifier ID {
                 }
             }
             currentParams.push_back($4);
-            int idx, pos, table_no;
-            SymbolInfo* symInfo = st.look_up($4->getName(), idx, pos, table_no);
-            string varName = "[BP+" + to_string((int)(currentParams.size())*2 + 2) + "]";
-            symInfo->setVarName(varName);
             
         }
 		| parameter_list COMMA type_specifier {
@@ -473,11 +477,6 @@ parameter_list  : parameter_list COMMA type_specifier ID {
             
             currentParams.push_back($2);
             paramOn = true;
-
-            int idx, pos, table_no;
-            SymbolInfo* symInfo = st.look_up($2->getName(), idx, pos, table_no);
-            string varName = "[BP+" + to_string((int)(currentParams.size())*2 + 2) + "]";
-            symInfo->setVarName(varName);
         }
 		| type_specifier {
             st.enter_scope();
@@ -1390,7 +1389,12 @@ factor	: variable {
             }
             $$->setDataType(symInfo->getFuncReturnType());
         }
+
         currentArgs.clear();
+
+        fprintf(tmpasmout, "\tCALL %s\n", $1->getName().c_str());
+        fprintf(tmpasmout, "\tPUSH AX\n");
+        tmpLineCnt += 2;
     }
 	| LPAREN expression RPAREN {
         $$ = new SymbolInfo("factor : LPAREN expression RPAREN ", "");
@@ -1510,6 +1514,8 @@ arguments : arguments COMMA logic_expression {
                 $$->addTreeChild($1);
 
                 currentArgs.push_back($1);
+
+                
             }
 	      ;
  
