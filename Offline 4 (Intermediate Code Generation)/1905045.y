@@ -19,6 +19,7 @@ FILE *parseout;
 FILE *errorout;
 FILE *tmpasmout;
 FILE *asmout;
+FILE *optasmout;
 
 int line_count = 1;
 int error_count = 0;
@@ -89,6 +90,56 @@ void write_final_assembly() {
     
     fprintf(asmout, "print_output proc  ;print what is in ax\n\tpush ax\n\tpush bx\n\tpush cx\n\tpush dx\n\tpush si\n\tlea si,number\n\tmov bx,10\n\tadd si,4\n\tcmp ax,0\n\tjnge negate\n\tprint:\n\txor dx,dx\n\tdiv bx\n\tmov [si],dl\n\tadd [si],\'0\'\n\tdec si\n\tcmp ax,0\n\tjne print\n\tinc si\n\tlea dx,si\n\tmov ah,9\n\tint 21h\n\tpop si\n\tpop dx\n\tpop cx\n\tpop bx\n\tpop ax\n\tret\n\tnegate:\n\tpush ax\n\tmov ah,2\n\tmov dl,\'-\'\n\tint 21h\n\tpop ax\n\tneg ax\n\tjmp print\nprint_output endp\nEND main\n");
 
+}
+
+void write_optimized_assembly(char *filename) {
+    fclose(asmout);
+    asmout = fopen(filename,"r");
+    char cstr[100], cstr2[100], cstr3[100];
+    pair<string, bool> str3, str2, str;
+    
+    fgets(cstr3, 95, asmout);
+    fgets(cstr2, 95, asmout);
+    
+    str3.first.assign(cstr3);
+    str3.second = true;
+
+    str2.first.assign(cstr2);
+    str2.second = true;
+
+    int pos;
+    
+    while (fgets(cstr, 95, asmout)) {
+        if (str3.second) {
+            fprintf(optasmout, "%s", str3.first.c_str());
+        }
+        str.first.assign(cstr);
+        str.second = true;
+        pos = str.first.find("POP");
+        if (pos != string::npos) {
+            // pop found
+            // find the register
+            string reg = str.first.substr(pos+4, 2);
+            // check if previous line was push reg
+            string cmd = "PUSH " + reg;
+            int pos2 = str2.first.find(cmd);
+            if (pos2 != string::npos) {
+                // consecutive push pop found
+                str2.second = false;
+                str.second = false;
+            }
+        }
+        
+        str3 = str2;
+        str2 = str;
+        
+    }
+    if (str3.second) {
+        fprintf(optasmout, "%s", str3.first.c_str());
+    }
+    if (str2.second) {
+        fprintf(optasmout, "%s", str2.first.c_str());
+    }
 }
 
 void printNewLabel() {
@@ -1551,6 +1602,8 @@ int main(int argc,char *argv[])
 	fclose(logout);
     asmout= fopen(argv[5],"w");
     fclose(asmout);
+    optasmout= fopen(argv[6],"w");
+    fclose(optasmout);
     tmpasmout= fopen("tmp_test_i_code.asm","w");
 	fclose(tmpasmout);
 	
@@ -1558,10 +1611,13 @@ int main(int argc,char *argv[])
     errorout= fopen(argv[3],"a");
 	logout= fopen(argv[4],"a");
     asmout= fopen(argv[5],"a");
+    optasmout= fopen(argv[6],"a");
     tmpasmout = fopen("tmp_test_i_code.asm","a");
 
 	yyin=fp;
 	yyparse();
+
+    write_optimized_assembly(argv[5]);
 	
     fprintf(logout, "Total Lines: %d\n", line_count);
     fprintf(logout, "Total Errors: %d\n", error_count);
@@ -1569,8 +1625,10 @@ int main(int argc,char *argv[])
 	fclose(parseout);
     fclose(errorout);
 	fclose(logout);
+    fclose(tmpasmout);
     fclose(asmout);
-    
+    fclose(optasmout);
+
     fclose(fp);
 	
 	return 0;
