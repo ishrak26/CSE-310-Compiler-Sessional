@@ -706,15 +706,25 @@ var_declaration : type_specifier declaration_list SEMICOLON {
                             }
                             else {
                                 symInfo->setGlobal(false);
-                                currStackOffset += 2;
-                                symInfo->setStackOffset(currStackOffset);
-                                fprintf(tmpasmout, "\tSUB SP, 2\n");
-                                tmpLineCnt++;
-                                string varName = "[BP-" + to_string(currStackOffset) + "]";
-                                symInfo->setVarName(varName);
+                                if (symInfo->getArray()) {
+                                    int arraySize = symInfo->getArraySize();
+                                    currStackOffset += 2;
+                                    symInfo->setStackOffset(currStackOffset);
+                                    fprintf(tmpasmout, "\tSUB SP, %d\n", 2*arraySize);
+                                    tmpLineCnt++;
+                                    string varName = "[BP-" + to_string(currStackOffset) + "]";
+                                    symInfo->setVarName(varName);
+                                    currStackOffset += 2*(arraySize-1);
+                                }
+                                else {
+                                    currStackOffset += 2;
+                                    symInfo->setStackOffset(currStackOffset);
+                                    fprintf(tmpasmout, "\tSUB SP, 2\n");
+                                    tmpLineCnt++;
+                                    string varName = "[BP-" + to_string(currStackOffset) + "]";
+                                    symInfo->setVarName(varName);
+                                }
                             }
-                            
-
                         }
                     }
                 }
@@ -975,6 +985,37 @@ statement : var_declaration {
                 tmpLineCnt += 3;
             }
         }
+        | PRINTLN LPAREN ID LSQUARE expression RSQUARE RPAREN SEMICOLON {
+            $$ = new SymbolInfo("statement : PRINTLN LPAREN ID LSQUARE expression RSQUARE RPAREN SEMICOLON ", "");
+            fprintf(logout, "%s\n", $$->getName().c_str());
+            $$->setRule(true);
+            $$->setStartLine($1->getStartLine());
+            $$->setEndLine($8->getEndLine());
+            $$->addTreeChild($1);
+            $$->addTreeChild($2);
+            $$->addTreeChild($3);
+            $$->addTreeChild($4);
+            $$->addTreeChild($5);
+            $$->addTreeChild($6);
+            $$->addTreeChild($7);
+            $$->addTreeChild($8);
+            
+            int table_no, pos, idx;
+            SymbolInfo* symInfo = st.look_up($3->getName(), idx, pos, table_no);
+            if (symInfo == nullptr) {
+                fprintf(errorout,"Line# %d: Undeclared variable \'%s\'\n",$3->getStartLine(),$3->getName().c_str());
+                error_count++;
+            }
+            else {
+                fprintf(tmpasmout, "\tPOP AX\n"); // expression
+                fprintf(tmpasmout, "\tLEA SI, %s\n", symInfo->getVarName().c_str());
+                fprintf(tmpasmout, "\tADD SI, AX\n");
+                fprintf(tmpasmout, "\tMOV AX, [SI]\n");
+                fprintf(tmpasmout, "\tCALL print_output\n");
+                fprintf(tmpasmout, "\tCALL new_line\n");
+                tmpLineCnt += 6;
+            }
+        }
 	  | RETURN expression SEMICOLON {
             $$ = new SymbolInfo("statement : RETURN expression SEMICOLON ", "");
             fprintf(logout, "%s\n", $$->getName().c_str());
@@ -1087,6 +1128,14 @@ variable : ID {
                 }
             }
             $$->setDataType(symInfo->getDataType());
+            fprintf(tmpasmout, "\tPOP AX\n"); // expression
+            fprintf(tmpasmout, "\tLEA SI, %s\n", symInfo->getVarName().c_str());
+            fprintf(tmpasmout, "\tADD SI, AX\n");
+            fprintf(tmpasmout, "\tPUSH SI\n");
+            tmpLineCnt += 4;
+
+            $$->setVarName("[SI]");
+            $$->setArray(true);
         }
      }
 	 ;
@@ -1147,9 +1196,14 @@ expression : logic_expression	{
                 }
                 
                 fprintf(tmpasmout, "\tPOP AX\n");
+                tmpLineCnt++;
+                if ($1->getArray()) {
+                    fprintf(tmpasmout, "\tPOP SI\n");
+                    tmpLineCnt++;
+                }
                 fprintf(tmpasmout, "\tMOV %s, AX\n", $1->getVarName().c_str());
                 fprintf(tmpasmout, "\tPUSH AX\n");
-                tmpLineCnt += 3;
+                tmpLineCnt += 2;
             }
         }	
 	   ;
@@ -1470,6 +1524,10 @@ factor	: variable {
 
         $$->setDataType($1->getDataType());
 
+        if ($1->getArray()) {
+            fprintf(tmpasmout, "\tPOP SI\n");
+            tmpLineCnt++;
+        }
         fprintf(tmpasmout, "\tMOV AX, %s\n", $1->getVarName().c_str());
         fprintf(tmpasmout, "\tPUSH AX\n");
         tmpLineCnt += 2;
@@ -1585,6 +1643,10 @@ factor	: variable {
 
         $$->setDataType($1->getDataType());
 
+        if ($1->getArray()) {
+            fprintf(tmpasmout, "\tPOP SI\n");
+            tmpLineCnt++;
+        }
         fprintf(tmpasmout, "\tMOV AX, %s\n", $1->getVarName().c_str());
         fprintf(tmpasmout, "\tPUSH AX\n");
         fprintf(tmpasmout, "\tINC AX\n");
@@ -1602,6 +1664,10 @@ factor	: variable {
 
         $$->setDataType($1->getDataType());
 
+        if ($1->getArray()) {
+            fprintf(tmpasmout, "\tPOP SI\n");
+            tmpLineCnt++;
+        }
         fprintf(tmpasmout, "\tMOV AX, %s\n", $1->getVarName().c_str());
         fprintf(tmpasmout, "\tPUSH AX\n");
         fprintf(tmpasmout, "\tDEC AX\n");
